@@ -1,0 +1,450 @@
+.book-page {
+  padding: 72px 0 2rem;
+  min-height: 100vh;
+  background-color: #f7fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.booking-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.booking-container h1 {
+  text-align: center;
+  color: #1a202c;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  font-weight: 700;
+}
+
+/* Progress Bar */
+.progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.progress-step {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #4a5568;
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  background: #2c5282;
+  color: white;
+}
+
+.progress-line {
+  width: 100px;
+  height: 3px;
+  background: #e2e8f0;
+  margin: 0 1rem;
+  transition: all 0.3s ease;
+}
+
+.progress-line.active {
+  background: #2c5282;
+}
+
+/* Appointment Types */
+.appointment-types {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.appointment-type {
+  padding: 1.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.appointment-type:hover {
+  border-color: #2c5282;
+  transform: translateY(-2px);
+}
+
+.appointment-type.selected {
+  border-color: #2c5282;
+  background: rgba(44, 82, 130, 0.05);
+}
+
+.appointment-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.appointment-type h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.appointment-type p {
+  color: #4a5568;
+  font-size: 1rem;
+}
+
+/* Date Time Selection */
+.date-time-selection {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin: 2rem 0;
+  padding: 0 1rem;
+}
+
+/* Personal Details Grid */
+.personal-details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  padding: 0 1rem;
+}
+
+/* Form Styling */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  color: #1a202c;
+  font-size: 1.1rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  height: 48px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  transition: border-color 0.3s ease;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  height: 120px;
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* Fix for date input */
+.form-group input[type="date"] {
+  padding: 0.6rem 1rem;
+}
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+  .date-time-selection {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 2rem;
+  }
+
+  .date-time-selection .form-group:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .personal-details {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 2rem;
+  }
+
+  .personal-details .form-group:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .booking-container {
+    padding: 1.5rem;
+  }
+
+  .date-time-selection,
+  .personal-details {
+    padding: 0 0.75rem;
+    gap: 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.7rem;
+    font-size: 1rem;
+    height: 45px;
+  }
+
+  .form-group textarea {
+    height: 100px;
+    min-height: 100px;
+  }
+
+  .booking-container h1 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .progress-bar {
+    margin-bottom: 2rem;
+  }
+
+  .progress-line {
+    width: 40px;
+  }
+
+  .appointment-types {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .audiologist-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .audiologist-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .audiologist-info h3 {
+    font-size: 1.25rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .back-button,
+  .next-button,
+  .submit-button {
+    width: 100%;
+    padding: 0.875rem;
+    font-size: 1rem;
+  }
+}
+
+/* Small screens */
+@media (max-width: 380px) {
+  .booking-container h1 {
+    font-size: 1.5rem;
+  }
+
+  .progress-step {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .progress-line {
+    width: 30px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .appointment-type,
+  .next-button,
+  .back-button,
+  .submit-button,
+  .progress-step,
+  .progress-line {
+    transition: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .appointment-type {
+    border: 2px solid #000;
+  }
+
+  .appointment-type.selected {
+    background: #000;
+    color: #fff;
+  }
+
+  .progress-step {
+    border: 2px solid #000;
+  }
+
+  .progress-step.active {
+    background: #000;
+  }
+
+  .progress-line {
+    background: #000;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    border: 2px solid #000;
+  }
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.next-button,
+.back-button,
+.submit-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+.next-button,
+.submit-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(44, 82, 130, 0.15);
+}
+
+.next-button:hover,
+.submit-button:hover {
+  background: #2a4365;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(44, 82, 130, 0.2);
+}
+
+.next-button:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.back-button {
+  background: transparent;
+  border: 2px solid #2c5282;
+  color: #2c5282;
+}
+
+.back-button:hover {
+  background: rgba(44, 82, 130, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Mobile Button Styles */
+@media (max-width: 768px) {
+  .button-group {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .back-button,
+  .next-button,
+  .submit-button {
+    width: 100%;
+    padding: 0.875rem;
+    font-size: 1rem;
+    min-width: unset;
+  }
+}
+
+/* Quiz Option */
+.quiz-option {
+  text-align: center;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #e2e8f0;
+}
+
+.quiz-option p {
+  color: #4a5568;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.quiz-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border: 2px solid #2c5282;
+  color: #2c5282;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quiz-button:hover {
+  background: #2c5282;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.quiz-icon {
+  font-size: 1.2rem;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .quiz-option {
+    margin: 1.5rem 0;
+    padding: 1rem;
+  }
+
+  .quiz-option p {
+    font-size: 1rem;
+  }
+
+  .quiz-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem;
+    font-size: 1rem;
+  }
+}
