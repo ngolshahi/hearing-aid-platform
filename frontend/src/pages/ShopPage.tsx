@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ShopPage.css';
+import Quiz from './Quiz';
 
 interface HearingAid {
   id: string;
@@ -23,11 +24,13 @@ const ShopPage: React.FC = () => {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('featured');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showAllColors, setShowAllColors] = useState(false);
 
   // Mock data
   const hearingAidTypes = ['In-the-Ear (ITE)', 'Behind-the-Ear (BTE)', 'In-the-Canal (ITC)', 'Completely-in-Canal (CIC)'];
   const brands = ['Phonak', 'Oticon', 'Starkey', 'ReSound', 'Widex', 'Signia'];
-  const colors = ['Beige', 'Brown', 'Black', 'Silver', 'Blue'];
+  const colors = ['Beige', 'Brown', 'Black', 'Silver'];
 
   // Mock hearing aids data
   const hearingAids: HearingAid[] = [
@@ -43,7 +46,43 @@ const ShopPage: React.FC = () => {
       image: '/images/bte-premium-main.png',
       description: 'Advanced hearing aid with superior sound quality',
     },
-    // Add more hearing aids...
+    {
+      id: '2',
+      name: 'Invisible ITC',
+      brand: 'Starkey',
+      type: 'In-the-Canal (ITC)',
+      price: 1899,
+      rating: 4.6,
+      releaseDate: '2023-05-20',
+      colors: ['Beige', 'Brown'],
+      image: '/images/itc-invisible.png',
+      description: 'Discreet and comfortable in-canal solution',
+    },
+    {
+      id: '3',
+      name: 'Elite ITE',
+      brand: 'Oticon',
+      type: 'In-the-Ear (ITE)',
+      price: 2199,
+      rating: 4.7,
+      releaseDate: '2023-07-01',
+      colors: ['Beige', 'Brown', 'Black', 'Silver'],
+      image: '/images/ite-elite.png',
+      description: 'Custom-fitted for optimal comfort',
+    },
+    {
+      id: '4',
+      name: 'Mini CIC',
+      brand: 'ReSound',
+      type: 'Completely-in-Canal (CIC)',
+      price: 2899,
+      rating: 4.9,
+      releaseDate: '2023-08-10',
+      colors: ['Beige', 'Brown'],
+      image: '/images/cic-mini.png',
+      description: 'Nearly invisible with premium sound quality',
+    },
+    // Add more hearing aids as needed...
   ];
 
   const handleTypeChange = (type: string) => {
@@ -63,11 +102,15 @@ const ShopPage: React.FC = () => {
   };
 
   const handleColorChange = (color: string) => {
-    setSelectedColors(prev =>
-      prev.includes(color)
-        ? prev.filter(c => c !== color)
-        : [...prev, color]
-    );
+    if (showAllColors) return; // Don't change colors if "No Preference" is selected
+    
+    setSelectedColors(prev => {
+      if (prev.includes(color)) {
+        return prev.filter(c => c !== color);
+      } else {
+        return [...prev, color];
+      }
+    });
   };
 
   const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +127,85 @@ const ShopPage: React.FC = () => {
     navigate(`/shop/product/${productId}`);
   };
 
+  const handleQuizComplete = (results: any) => {
+    setShowQuiz(false);
+    
+    // Update types
+    if (results.types && results.types.length > 0) {
+      setSelectedTypes(results.types);
+    }
+    
+    // Update brands
+    if (results.brands && results.brands.length > 0) {
+      setSelectedBrands(results.brands);
+    }
+    
+    // Update colors
+    if (results.colors && results.colors.length > 0) {
+      setSelectedColors(results.colors);
+    }
+    
+    // Update price range
+    if (results.priceRange) {
+      setPriceRange(results.priceRange);
+    }
+  };
+
+  const resetFilters = () => {
+    setSelectedTypes([]);
+    setSelectedBrands([]);
+    setSelectedColors([]);
+    setShowAllColors(false);
+    setPriceRange([0, 5000]);
+    setSortBy('featured');
+  };
+
+  const getFilteredHearingAids = () => {
+    return hearingAids.filter(aid => {
+      // Filter by type
+      if (selectedTypes.length > 0 && !selectedTypes.includes(aid.type)) {
+        return false;
+      }
+
+      // Filter by brand
+      if (selectedBrands.length > 0 && !selectedBrands.includes(aid.brand)) {
+        return false;
+      }
+
+      // Filter by color
+      if (selectedColors.length > 0 && !showAllColors) {
+        // Check if the hearing aid has ANY of the selected colors
+        const hasMatchingColor = selectedColors.some(selectedColor => 
+          aid.colors.includes(selectedColor)
+        );
+        if (!hasMatchingColor) {
+          return false;
+        }
+      }
+
+      // Filter by price range
+      if (aid.price < priceRange[0] || aid.price > priceRange[1]) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      // Sort the filtered results
+      switch (sortBy) {
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'newest':
+          return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+        default: // 'featured'
+          return 0;
+      }
+    });
+  };
+
   return (
     <div className="shop-page">
       <div className="shop-container">
@@ -94,7 +216,7 @@ const ShopPage: React.FC = () => {
             <p>Take our quick quiz to find the perfect match for your needs.</p>
             <button 
               className="quiz-button"
-              onClick={() => navigate('/hearing-aid-quiz')}
+              onClick={() => setShowQuiz(true)}
             >
               Take the Quiz
             </button>
@@ -120,6 +242,12 @@ const ShopPage: React.FC = () => {
                 <i className="fas fa-times"></i>
               </button>
             </div>
+
+            {/* Reset Filters Button */}
+            <button className="reset-filters" onClick={resetFilters}>
+              Reset All Filters
+            </button>
+
             <div className="filter-section">
               <h3>Type</h3>
               {hearingAidTypes.map(type => (
@@ -150,18 +278,37 @@ const ShopPage: React.FC = () => {
 
             <div className="filter-section">
               <h3>Color</h3>
-              <div className="color-options">
-                {colors.map(color => (
-                  <button
-                    key={color}
-                    className={`color-button ${selectedColors.includes(color) ? 'selected' : ''}`}
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={showAllColors}
+                  onChange={() => {
+                    setShowAllColors(!showAllColors);
+                    if (!showAllColors) {
+                      setSelectedColors([]); // Clear color selection when enabling "No Preference"
+                    }
+                  }}
+                />
+                No Preference
+              </label>
+              {colors.map(color => (
+                <label 
+                  key={color} 
+                  className={`filter-option ${showAllColors ? 'disabled' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedColors.includes(color)}
+                    onChange={() => handleColorChange(color)}
+                    disabled={showAllColors}
+                  />
+                  <span 
+                    className="color-sample" 
                     style={{ backgroundColor: color.toLowerCase() }}
-                    onClick={() => handleColorChange(color)}
-                  >
-                    <span className="color-name">{color}</span>
-                  </button>
-                ))}
-              </div>
+                  />
+                  {color}
+                </label>
+              ))}
             </div>
 
             <div className="filter-section">
@@ -207,7 +354,7 @@ const ShopPage: React.FC = () => {
 
             {/* Products Grid */}
             <div className="products-grid">
-              {hearingAids.map(product => (
+              {getFilteredHearingAids().map(product => (
                 <div 
                   key={product.id} 
                   className="product-card"
@@ -253,6 +400,14 @@ const ShopPage: React.FC = () => {
           </main>
         </div>
       </div>
+
+      {showQuiz && (
+        <Quiz
+          type="hearing-aid"
+          onClose={() => setShowQuiz(false)}
+          onComplete={handleQuizComplete}
+        />
+      )}
     </div>
   );
 };

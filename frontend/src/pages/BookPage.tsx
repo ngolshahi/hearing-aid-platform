@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/BookPage.css';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Quiz from './Quiz';
 
 interface Audiologist {
   id: number;
@@ -34,6 +35,7 @@ const BookPage: React.FC = () => {
     county: '',
     postcode: '',
   });
+  const [showQuiz, setShowQuiz] = useState(false);
 
   const appointmentTypes = [
     {
@@ -115,6 +117,17 @@ const BookPage: React.FC = () => {
     });
   };
 
+  const handleQuizComplete = (results: any) => {
+    setShowQuiz(false);
+    if (results.appointmentType) {
+      // Find the matching appointment type and set it
+      const appointmentMatch = appointmentTypes.find(apt => apt.id === results.appointmentType);
+      if (appointmentMatch) {
+        setAppointmentType(appointmentMatch.type);
+      }
+    }
+  };
+
   useEffect(() => {
     if (selectedService) {
       // Find the appointment type that matches the selected service ID
@@ -164,7 +177,7 @@ const BookPage: React.FC = () => {
                 <button
                   type="button"
                   className="quiz-button"
-                  onClick={() => navigate('/appointment-quiz')}
+                  onClick={() => setShowQuiz(true)}
                 >
                   <span className="quiz-icon">❓</span>
                   Take our quick quiz
@@ -352,6 +365,14 @@ const BookPage: React.FC = () => {
           )}
         </form>
       </div>
+      
+      {showQuiz && (
+        <Quiz
+          type="appointment"
+          onClose={() => setShowQuiz(false)}
+          onComplete={handleQuizComplete}
+        />
+      )}
     </div>
   );
 };
