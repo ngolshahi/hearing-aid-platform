@@ -260,7 +260,7 @@
 .feature-icon {
   font-size: 2rem;
   margin-bottom: 1rem;
-  display: block;
+  display: inline-flex;
 }
 
 .feature-card h3 {

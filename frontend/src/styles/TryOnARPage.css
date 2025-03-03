@@ -1,0 +1,220 @@
+.try-on-page {
+  min-height: 100vh;
+  background-color: #f7fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding-top: 72px; /* Match the header height */
+}
+
+.try-on-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.try-on-header {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.try-on-header h1 {
+  font-size: 2.5rem;
+  color: #1a202c;
+  font-weight: 600;
+  margin: 0;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #2c5282;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: rgba(44, 82, 130, 0.1);
+}
+
+.back-icon {
+  font-size: 1.2rem;
+}
+
+/* Update existing mobile experience styles */
+.mobile-experience {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  height: calc(100vh - 300px);
+}
+
+.camera-permission {
+  text-align: center;
+  padding: 3rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.camera-permission h2 {
+  font-size: 1.8rem;
+  color: #1a202c;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.camera-permission p {
+  color: #4a5568;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* Update desktop experience styles */
+.desktop-experience {
+  background: transparent;
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.upload-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.upload-area {
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #2c5282;
+  background-color: rgba(44, 82, 130, 0.02);
+}
+
+.upload-content h2 {
+  font-size: 1.8rem;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.upload-content p {
+  color: #4a5568;
+  margin-bottom: 1.5rem;
+}
+
+.upload-button,
+.primary-button,
+.secondary-button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.primary-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+}
+
+.primary-button:hover {
+  background: #2a4365;
+  transform: translateY(-1px);
+}
+
+.secondary-button {
+  background: transparent;
+  border: 2px solid #2c5282;
+  color: #2c5282;
+}
+
+.secondary-button:hover {
+  background: rgba(44, 82, 130, 0.08);
+  transform: translateY(-1px);
+}
+
+.instructions {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.instructions h3 {
+  font-size: 1.2rem;
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.instructions li {
+  color: #4a5568;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* Update mobile responsive styles */
+@media (max-width: 768px) {
+  .try-on-content {
+    padding: 1rem;
+  }
+
+  .try-on-header h1 {
+    font-size: 2rem;
+  }
+
+  .mobile-experience {
+    padding: 1rem;
+    height: calc(100vh - 250px);
+  }
+
+  .camera-permission {
+    padding: 2rem 1rem;
+  }
+
+  .camera-permission h2 {
+    font-size: 1.5rem;
+  }
+
+  .desktop-experience {
+    grid-template-columns: 1fr;
+  }
+
+  .instructions {
+    margin-top: 1rem;
+  }
+}
+
+/* Keep existing animation and accessibility styles */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .processing-spinner {
+    animation: none;
+  }
+} 

@@ -8,7 +8,9 @@ import ContactPage from "./pages/ContactPage";
 import ShopPage from "./pages/ShopPage";
 import ProductPage from "./pages/ProductPage";
 import LoginPage from "./pages/LoginPage";
+import TryOnARPage from "./pages/TryOnARPage";
 import ScrollToTop from './components/ScrollToTop';
+import HearingTestPage from "./pages/HearingTestPage";
 
 const App: React.FC = () => {
   return (
@@ -22,6 +24,8 @@ const App: React.FC = () => {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/shop/product/:id" element={<ProductPage />} />
+          <Route path="/try-on/:productId" element={<TryOnARPage />} />
+          <Route path="/hearing-test" element={<HearingTestPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<LoginPage />} />
         </Routes>

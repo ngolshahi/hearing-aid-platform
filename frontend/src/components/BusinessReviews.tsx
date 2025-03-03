@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaGoogle } from 'react-icons/fa';
 import '../styles/BusinessReviews.css';
+import { useNavigate } from 'react-router-dom';
 
 interface BusinessReview {
   id: string;
@@ -38,6 +39,8 @@ const BusinessReviews: React.FC = () => {
       location: 'Birmingham, UK'
     }
   ];
+
+  const navigate = useNavigate();
 
   return (
     <section className="business-reviews">
@@ -92,7 +95,7 @@ const BusinessReviews: React.FC = () => {
 
         <div className="reviews-cta">
           <p>Experience the Auralise difference for yourself</p>
-          <button className="book-consultation-button">
+          <button className="book-consultation-button" onClick={() => navigate('/book')}>
             Book a Free Consultation
           </button>
         </div>

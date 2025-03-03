@@ -114,8 +114,7 @@ const ProductPage: React.FC = () => {
   const averageRating = reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
 
   const startARExperience = () => {
-    // Implement AR functionality
-    console.log('Starting AR experience');
+    navigate(`/try-on/${product.id}`);
   };
 
   const openCompareModal = () => {

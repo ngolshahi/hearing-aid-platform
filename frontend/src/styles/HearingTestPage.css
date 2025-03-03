@@ -1,0 +1,280 @@
+.hearing-test-page {
+  min-height: 100vh;
+  background-color: #f7fafc;
+  padding: 72px 0 2rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.test-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.test-intro {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 2rem;
+}
+
+.test-intro h1 {
+  font-size: 2.5rem;
+  color: #1a202c;
+  margin-bottom: 2rem;
+}
+
+.requirements-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.requirements-card h2 {
+  color: #2c5282;
+  margin-bottom: 1.5rem;
+}
+
+.requirements-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.requirements-card li {
+  padding: 0.75rem 0;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.requirements-card li:before {
+  content: "✓";
+  color: #48bb78;
+  font-weight: bold;
+}
+
+.start-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.start-button:hover {
+  background: #2a4365;
+  transform: translateY(-1px);
+}
+
+.test-step {
+  text-align: center;
+}
+
+.progress-bar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin-bottom: 2rem;
+}
+
+.progress {
+  height: 100%;
+  background: #2c5282;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.frequency-description {
+  color: #4a5568;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.test-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.play-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+  padding: 1.5rem 3rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.play-button:hover:not(:disabled) {
+  background: #2a4365;
+  transform: scale(1.05);
+}
+
+.play-button.playing {
+  background: #718096;
+  cursor: not-allowed;
+}
+
+.response-buttons {
+  text-align: center;
+}
+
+.response-buttons p {
+  margin-bottom: 1rem;
+  color: #4a5568;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.response-button {
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.response-button.yes {
+  background: #48bb78;
+  color: white;
+  border: none;
+}
+
+.response-button.no {
+  background: #e53e3e;
+  color: white;
+  border: none;
+}
+
+.response-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.response-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Results styles */
+.results-container {
+  text-align: left;
+}
+
+.results-container h2 {
+  color: #2c5282;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.results-summary {
+  color: #4a5568;
+}
+
+.frequency-results {
+  margin: 2rem 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.frequency-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.frequency-label {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.frequency-result {
+  font-weight: 500;
+}
+
+.frequency-result.heard {
+  color: #48bb78;
+}
+
+.frequency-result.not-heard {
+  color: #e53e3e;
+}
+
+.recommendation {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.recommendation h3 {
+  color: #2c5282;
+  margin-bottom: 1rem;
+}
+
+.action-buttons {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.action-buttons button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .test-container {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .test-intro h1 {
+    font-size: 2rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .play-button {
+    padding: 1rem 2rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .progress,
+  .play-button,
+  .response-button {
+    transition: none;
+  }
+} 
