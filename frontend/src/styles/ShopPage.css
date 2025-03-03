@@ -256,22 +256,15 @@
 
 /* Product Actions */
 .product-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1rem;
 }
 
-.primary-button,
-.secondary-button {
+.product-actions button {
   width: 100%;
-  padding: 0.75rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
 }
 
 .primary-button {
@@ -353,6 +346,17 @@
 @media (max-width: 768px) {
   .shop-container {
     padding: 1rem;
+  }
+
+  .product-actions {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 10px;
+  }
+
+  /* Optional: Make buttons full-width on mobile */
+  .product-actions button {
+    width: 100%;
   }
   
   .quiz-banner {
@@ -539,11 +543,6 @@
   
   .product-image {
     height: 180px;
-  }
-  
-  .product-actions {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
   }
   
   .primary-button,

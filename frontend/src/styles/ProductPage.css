@@ -189,10 +189,14 @@
 
 /* Product Actions */
 .product-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 2rem;
+}
+
+.product-actions button {
+  width: 100%;
 }
 
 .primary-button,
@@ -382,14 +386,11 @@
   }
 
   .product-actions {
-    grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
 
-  .primary-button,
-  .secondary-button {
-    padding: 0.875rem;
-    font-size: 1rem;
+  .product-actions button {
+    width: 100%;
   }
 }
 
