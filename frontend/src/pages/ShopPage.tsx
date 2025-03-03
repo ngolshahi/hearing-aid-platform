@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ShopPage.css';
 import Quiz from './Quiz';
@@ -85,6 +85,13 @@ const ShopPage: React.FC = () => {
     // Add more hearing aids as needed...
   ];
 
+  useEffect(() => {
+    // Clean up the body overflow style when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const handleTypeChange = (type: string) => {
     setSelectedTypes(prev => 
       prev.includes(type) 
@@ -121,6 +128,10 @@ const ShopPage: React.FC = () => {
 
   const toggleFilter = () => {
     setIsFilterOpen(!isFilterOpen);
+    // Prevent body scroll when filter menu is open on mobile
+    if (window.innerWidth <= 768) {
+      document.body.style.overflow = !isFilterOpen ? 'hidden' : '';
+    }
   };
 
   const handleProductClick = (productId: string) => {
@@ -238,7 +249,7 @@ const ShopPage: React.FC = () => {
           <aside className={`filters ${isFilterOpen ? 'open' : ''}`}>
             <div className="filters-header">
               <h2>Filters</h2>
-              <button className="close-filters" onClick={toggleFilter}>
+              <button className="close-filters" onClick={toggleFilter} aria-label="Close filters">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -354,48 +365,57 @@ const ShopPage: React.FC = () => {
 
             {/* Products Grid */}
             <div className="products-grid">
-              {getFilteredHearingAids().map(product => (
-                <div 
-                  key={product.id} 
-                  className="product-card"
-                  onClick={() => handleProductClick(product.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      handleProductClick(product.id);
-                    }
-                  }}
-                >
-                  <div className="product-image">
-                    <img src={product.image} alt={product.name} />
+              {getFilteredHearingAids().length > 0 ? (
+                getFilteredHearingAids().map(product => (
+                  <div 
+                    key={product.id} 
+                    className="product-card"
+                    onClick={() => handleProductClick(product.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleProductClick(product.id);
+                      }
+                    }}
+                  >
+                    <div className="product-image">
+                      <img src={product.image} alt={product.name} />
+                    </div>
+                    <div className="product-info">
+                      <h3>{product.name}</h3>
+                      <p className="brand">{product.brand}</p>
+                      <p className="type">{product.type}</p>
+                      <div className="rating">
+                        <span className="stars">{'★'.repeat(Math.floor(product.rating))}</span>
+                        <span className="rating-number">({product.rating})</span>
+                      </div>
+                      <p className="price">£{product.price.toLocaleString()}</p>
+                      <div className="available-colors">
+                        {product.colors.map(color => (
+                          <span
+                            key={color}
+                            className="color-dot"
+                            style={{ backgroundColor: color.toLowerCase() }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                      <div className="product-actions">
+                        <button className="primary-button">Add to Cart</button>
+                        <button className="secondary-button">Compare</button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="product-info">
-                    <h3>{product.name}</h3>
-                    <p className="brand">{product.brand}</p>
-                    <p className="type">{product.type}</p>
-                    <div className="rating">
-                      <span className="stars">{'★'.repeat(Math.floor(product.rating))}</span>
-                      <span className="rating-number">({product.rating})</span>
-                    </div>
-                    <p className="price">£{product.price.toLocaleString()}</p>
-                    <div className="available-colors">
-                      {product.colors.map(color => (
-                        <span
-                          key={color}
-                          className="color-dot"
-                          style={{ backgroundColor: color.toLowerCase() }}
-                          title={color}
-                        />
-                      ))}
-                    </div>
-                    <div className="product-actions">
-                      <button className="primary-button">Add to Cart</button>
-                      <button className="secondary-button">Compare</button>
-                    </div>
-                  </div>
+                ))
+              ) : (
+                <div className="no-results">
+                  <p>No products match your current filters.</p>
+                  <button className="reset-filters" onClick={resetFilters}>
+                    Reset All Filters
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </main>
         </div>

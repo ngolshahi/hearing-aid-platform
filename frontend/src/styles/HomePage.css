@@ -24,7 +24,7 @@
   background: linear-gradient(135deg, rgba(26, 32, 44, 0.95), rgba(44, 82, 130, 0.85));
   background-size: cover;
   background-position: center;
-  min-height: 90vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   position: relative;
@@ -357,7 +357,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
-  max-width: 1300px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 

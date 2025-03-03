@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/LoginPage.css';
+import { login, register } from '../services/authService';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const LoginPage: React.FC = () => {
     lastName: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update isLogin when path changes
   useEffect(() => {
@@ -22,16 +25,67 @@ const LoginPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setError('');
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log(formData);
+    setError('');
+    setIsLoading(true);
+  
+    try {
+      // Validation
+      if (!isLogin && formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setIsLoading(false);
+        return;
+      }
+  
+      if (isLogin) {
+        // Handle login
+        const response = await login({
+          email: formData.email,
+          password: formData.password
+        });
+  
+        // Check for successful login - the token must exist AND not be null
+        if (response && response.token) {
+          // Login successful - store the token in localStorage or context
+          localStorage.setItem('authToken', response.token);
+          alert('Logged in successfully.');
+          navigate('/'); // Redirect to home page
+        } else {
+          // Login failed
+          setError(response.message || 'Invalid email or password');
+        }
+      } else {
+        // Handle registration (unchanged)
+        const response = await register({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName
+        });
+  
+        if (response.message === 'User created successfully') {
+          // Registration successful
+          alert('Account created successfully! Please log in.');
+          navigate('/login');
+        } else {
+          // Registration failed
+          setError(response.message || 'Registration failed');
+        }
+      }
+    } catch (err) {
+      console.error('Authentication error:', err);
+      setError('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleForm = () => {
@@ -43,6 +97,7 @@ const LoginPage: React.FC = () => {
       firstName: '',
       lastName: '',
     });
+    setError('');
     // Update URL when toggling
     navigate(isLogin ? '/signup' : '/login');
   };
@@ -59,6 +114,12 @@ const LoginPage: React.FC = () => {
                 : 'Join us for better hearing healthcare'}
             </p>
           </div>
+
+          {error && (
+            <div className="error-message" style={{ color: 'red', marginBottom: '15px' }}>
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="auth-form">
             {!isLogin && (
@@ -151,8 +212,12 @@ const LoginPage: React.FC = () => {
               </div>
             )}
 
-            <button type="submit" className="submit-button">
-              {isLogin ? 'Sign In' : 'Create Account'}
+            <button 
+              type="submit" 
+              className="submit-button"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
 

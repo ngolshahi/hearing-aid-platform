@@ -117,8 +117,3 @@ Start the frontend: Run ```npm run dev``` in the frontend directory to start the
 - Frontend not loading: Check if the React development server is running by visiting ```http://localhost:5173```. Ensure there are no errors in the browser console.
 
 - Database connection issues: Verify your Azure Cosmos DB credentials and ensure the database is accessible.
-
-
-
-
-

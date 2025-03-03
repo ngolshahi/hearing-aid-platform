@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from './contexts/AuthContext';
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
@@ -15,6 +16,7 @@ import HearingTestPage from "./pages/HearingTestPage";
 const App: React.FC = () => {
   return (
     <Router>
+      <AuthProvider>
       <ScrollToTop />
       <div className="app">
         <Header />
@@ -31,6 +33,7 @@ const App: React.FC = () => {
         </Routes>
         <Footer />
       </div>
+      </AuthProvider>
     </Router>
   );
 };
