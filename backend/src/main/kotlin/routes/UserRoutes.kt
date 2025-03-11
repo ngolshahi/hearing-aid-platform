@@ -1,7 +1,6 @@
 package routes
 
-import config.Database
-import config.User
+import services.AuthService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -19,6 +18,8 @@ data class LoginRequest(val email: String, val password: String)
 data class AuthResponse(val email: String?, val token: String?, val message: String)
 
 fun Route.userRoutes() {
+    val authService = AuthService()
+    
     route("/api/users") {
         post("/register") {
             try {
@@ -26,7 +27,7 @@ fun Route.userRoutes() {
                 
                 // Create a user in your database
                 // Note: You need to update the User model to include email, password fields
-                val result = Database.createUser("${userRequest.firstName} ${userRequest.lastName}", userRequest.email, userRequest.password)
+                val result = authService.registerUser("${userRequest.firstName} ${userRequest.lastName}", userRequest.email, userRequest.password)
                 
                 if (result == HttpStatusCode.Created) {
                     call.respond(HttpStatusCode.Created, AuthResponse(
@@ -54,12 +55,9 @@ fun Route.userRoutes() {
             try {
                 val loginRequest = call.receive<LoginRequest>()
                 
-                // Check if user exists and password matches
-                val user = Database.readUser(loginRequest.email)
-                
-                if (user != null && Database.verifyPassword(loginRequest.email, loginRequest.password)) {
+                if (authService.authenticateUser(loginRequest.email, loginRequest.password)) {
                     call.respond(HttpStatusCode.OK, AuthResponse(
-                        email = user.email,
+                        email = loginRequest.email,
                         token = "dummy-token", // In a real app, generate a JWT token here
                         message = "Login successful"
                     ))
