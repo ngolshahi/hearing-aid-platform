@@ -2,19 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ShopPage.css';
 import Quiz from './Quiz';
-
-interface HearingAid {
-  id: string;
-  name: string;
-  brand: string;
-  type: string;
-  price: number;
-  rating: number;
-  releaseDate: string;
-  colors: string[];
-  image: string;
-  description: string;
-}
+import { getHearingAids, HearingAid } from '../services/authService';
 
 const ShopPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,64 +14,45 @@ const ShopPage: React.FC = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showAllColors, setShowAllColors] = useState(false);
+  
+  // State for hearing aids data and loading status
+  const [hearingAids, setHearingAids] = useState<HearingAid[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const hearingAidTypes = ['In-the-Ear (ITE)', 'Behind-the-Ear (BTE)', 'In-the-Canal (ITC)', 'Completely-in-Canal (CIC)'];
-  const brands = ['Phonak', 'Oticon', 'Starkey', 'ReSound', 'Widex', 'Signia'];
-  const colors = ['Beige', 'Brown', 'Black', 'Silver'];
+  // Arrays for filter options that will be populated from the fetched data
+  const [hearingAidTypes, setHearingAidTypes] = useState<string[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
+  const [colors, setColors] = useState<string[]>([]);
 
-  // Mock hearing aids data
-  const hearingAids: HearingAid[] = [
-    {
-      id: '1',
-      name: 'Premium Plus BTE',
-      brand: 'Phonak',
-      type: 'Behind-the-Ear (BTE)',
-      price: 2499,
-      rating: 4.8,
-      releaseDate: '2023-06-15',
-      colors: ['Beige', 'Brown', 'Black'],
-      image: '/images/bte-premium-main.png',
-      description: 'Advanced hearing aid with superior sound quality',
-    },
-    {
-      id: '2',
-      name: 'Invisible ITC',
-      brand: 'Starkey',
-      type: 'In-the-Canal (ITC)',
-      price: 1899,
-      rating: 4.6,
-      releaseDate: '2023-05-20',
-      colors: ['Beige', 'Brown'],
-      image: '/images/itc-invisible.png',
-      description: 'Discreet and comfortable in-canal solution',
-    },
-    {
-      id: '3',
-      name: 'Elite ITE',
-      brand: 'Oticon',
-      type: 'In-the-Ear (ITE)',
-      price: 2199,
-      rating: 4.7,
-      releaseDate: '2023-07-01',
-      colors: ['Beige', 'Brown', 'Black', 'Silver'],
-      image: '/images/ite-elite.png',
-      description: 'Custom-fitted for optimal comfort',
-    },
-    {
-      id: '4',
-      name: 'Mini CIC',
-      brand: 'ReSound',
-      type: 'Completely-in-Canal (CIC)',
-      price: 2899,
-      rating: 4.9,
-      releaseDate: '2023-08-10',
-      colors: ['Beige', 'Brown'],
-      image: '/images/cic-mini.png',
-      description: 'Nearly invisible with premium sound quality',
-    },
-    // Add more hearing aids as needed...
-  ];
+  // Fetch hearing aids from the API
+  useEffect(() => {
+    const fetchHearingAids = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getHearingAids();
+        setHearingAids(data);
+        
+        // Extract unique types, brands, and colors from the fetched data
+        const types = [...new Set(data.map(aid => aid.type))];
+        const brandsList = [...new Set(data.map(aid => aid.brand))];
+        const colorsList = [...new Set(data.flatMap(aid => aid.colors))];
+        
+        setHearingAidTypes(types);
+        setBrands(brandsList);
+        setColors(colorsList);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch hearing aids:', err);
+        setError('Failed to load products. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHearingAids();
+  }, []);
 
   useEffect(() => {
     // Clean up the body overflow style when component unmounts
@@ -365,7 +334,21 @@ const ShopPage: React.FC = () => {
 
             {/* Products Grid */}
             <div className="products-grid">
-              {getFilteredHearingAids().length > 0 ? (
+              {isLoading ? (
+                <div className="loading-message">
+                  <p>Loading products...</p>
+                </div>
+              ) : error ? (
+                <div className="error-message">
+                  <p>{error}</p>
+                  <button 
+                    className="retry-button"
+                    onClick={() => window.location.reload()}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : getFilteredHearingAids().length > 0 ? (
                 getFilteredHearingAids().map(product => (
                   <div 
                     key={product.id} 

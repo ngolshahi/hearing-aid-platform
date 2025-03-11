@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getHearingAidById, HearingAid as BasicHearingAid } from '../services/authService';
 import '../styles/ProductPage.css';
 
 interface Feature {
@@ -8,19 +9,12 @@ interface Feature {
   description: string;
 }
 
-interface HearingAid {
-  id: string;
-  name: string;
-  subtitle: string;
-  brand: string;
-  type: string;
-  price: number;
-  rating: number;
-  colors: string[];
-  images: string[];
-  description: string;
-  features: Feature[];
-  specifications: Record<string, string>;
+// Extended HearingAid interface that includes all the fields needed for the product page
+interface HearingAid extends BasicHearingAid {
+  subtitle?: string;
+  images?: string[];
+  features?: Feature[];
+  specifications?: Record<string, string>;
 }
 
 interface Review {
@@ -35,57 +29,13 @@ interface Review {
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedColor, setSelectedColor] = useState('Beige');
+  const { id } = useParams<{ id: string }>();
+  const [selectedColor, setSelectedColor] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
-
-  // Mock product data
-  const product: HearingAid = {
-    id: '1',
-    name: 'Premium Plus BTE',
-    subtitle: 'Advanced Hearing Solution',
-    brand: 'Phonak',
-    type: 'Behind-the-Ear (BTE)',
-    price: 2499,
-    rating: 4.8,
-    colors: ['Beige', 'Brown', 'Black', 'Silver'],
-    images: [
-      '/images/bte-premium-main.png',
-      '/images/bte-premium-main.png',
-      '/images/bte-premium-main.png',
-    ],
-    description: 'Experience superior sound quality with our most advanced hearing aid. Featuring cutting-edge technology for crystal-clear audio in any environment.',
-    features: [
-      {
-        icon: '🔊',
-        title: 'Advanced Sound Processing',
-        description: 'Automatically adjusts to different sound environments'
-      },
-      {
-        icon: '🔋',
-        title: 'Long Battery Life',
-        description: 'Up to 24 hours of continuous use'
-      },
-      {
-        icon: '📱',
-        title: 'Smartphone Connectivity',
-        description: 'Stream audio directly from your devices'
-      },
-      {
-        icon: '💧',
-        title: 'Water Resistant',
-        description: 'IP68 rated for water and dust protection'
-      }
-    ],
-    specifications: {
-      'Battery Type': 'Rechargeable Li-ion',
-      'Bluetooth': 'Version 5.0',
-      'Noise Reduction': 'Advanced Digital',
-      'Warranty': '3 Years',
-      'Water Resistance': 'IP68',
-      'Weight': '2.8g'
-    }
-  };
+  const [product, setProduct] = useState<HearingAid | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Mock reviews data
   const reviews: Review[] = [
@@ -110,16 +60,92 @@ const ProductPage: React.FC = () => {
     // Add more reviews...
   ];
 
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!id) {
+        setError('Product ID is missing');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const hearingAidData = await getHearingAidById(id);
+        
+        // Transform basic hearing aid data to extended format with default values
+        const extendedData: HearingAid = {
+          ...hearingAidData,
+          subtitle: hearingAidData.subtitle || 'Advanced Hearing Solution',
+          images: hearingAidData.images || [hearingAidData.image, hearingAidData.image, hearingAidData.image],
+          features: hearingAidData.features || [
+            {
+              icon: '🔊',
+              title: 'Advanced Sound Processing',
+              description: 'Automatically adjusts to different sound environments'
+            },
+            {
+              icon: '🔋',
+              title: 'Long Battery Life',
+              description: 'Up to 24 hours of continuous use'
+            },
+            {
+              icon: '📱',
+              title: 'Smartphone Connectivity',
+              description: 'Stream audio directly from your devices'
+            },
+            {
+              icon: '💧',
+              title: 'Water Resistant',
+              description: 'IP68 rated for water and dust protection'
+            }
+          ],
+          specifications: hearingAidData.specifications || {
+            'Battery Type': 'Rechargeable Li-ion',
+            'Bluetooth': 'Version 5.0',
+            'Noise Reduction': 'Advanced Digital',
+            'Warranty': '3 Years',
+            'Water Resistance': 'IP68',
+            'Weight': '2.8g'
+          }
+        };
+        
+        setProduct(extendedData);
+        
+        // Set initial selected color
+        if (extendedData.colors && extendedData.colors.length > 0) {
+          setSelectedColor(extendedData.colors[0]);
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching product data:', err);
+        setError('Failed to load product data');
+        setLoading(false);
+      }
+    };
+
+    fetchProductData();
+  }, [id]);
+
   // Calculate average rating
   const averageRating = reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
 
   const startARExperience = () => {
-    navigate(`/try-on/${product.id}`);
+    if (product) {
+      navigate(`/try-on/${product.id}`);
+    }
   };
 
   const openCompareModal = () => {
     setIsCompareModalOpen(true);
   };
+
+  if (loading) {
+    return <div className="loading">Loading product information...</div>;
+  }
+
+  if (error || !product) {
+    return <div className="error">{error || 'Product not found'}</div>;
+  }
 
   return (
     <div className="product-page">
@@ -128,12 +154,12 @@ const ProductPage: React.FC = () => {
         <div className="product-gallery">
           <div className="main-image">
             <img 
-              src={product.images[selectedImage]} 
+              src={product.images?.[selectedImage] || product.image} 
               alt={`${product.name} - View ${selectedImage + 1}`} 
             />
           </div>
           <div className="image-thumbnails">
-            {product.images.map((image, index) => (
+            {(product.images || [product.image]).map((image, index) => (
               <button
                 key={index}
                 className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
@@ -198,7 +224,7 @@ const ProductPage: React.FC = () => {
       <div className="features-section">
         <h2>Key Features</h2>
         <div className="features-grid">
-          {product.features.map((feature, index) => (
+          {product.features?.map((feature, index) => (
             <div key={index} className="feature-card">
               <span className="feature-icon">{feature.icon}</span>
               <h3>{feature.title}</h3>
@@ -212,7 +238,7 @@ const ProductPage: React.FC = () => {
       <div className="specifications-section">
         <h2>Technical Specifications</h2>
         <div className="specifications-grid">
-          {Object.entries(product.specifications).map(([key, value]) => (
+          {Object.entries(product.specifications || {}).map(([key, value]) => (
             <div key={key} className="specification-item">
               <span className="spec-label">{key}</span>
               <span className="spec-value">{value}</span>
