@@ -312,6 +312,7 @@
 
 .spec-value {
   color: #1a202c;
+  text-align: right;
   font-weight: 600;
 }
 
