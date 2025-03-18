@@ -40,9 +40,12 @@ class UserRepository {
         }
     }
 
-    fun verifyPassword(email: String, password: String): Boolean {
-        val user = readUser(email) ?: return false
+    fun verifyPassword(email: String, password: String): User? {
+        val user = readUser(email) ?: return null
         // In a real app, compare hashed passwords
-        return user.password == password
+        if (user.password == password) {
+            return user
+        }
+        return null
     }
 }
