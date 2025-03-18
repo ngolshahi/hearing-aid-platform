@@ -106,3 +106,12 @@ data class AppointmentResponse @JsonCreator constructor(
     @JsonProperty("appointmentId") val appointmentId: String? = null,
     @JsonProperty("message") val message: String = ""
 )
+
+@Serializable
+data class LoginRequest(val email: String, val password: String)
+
+@Serializable
+data class AuthResponse(val email: String?, val token: String?, val message: String)
+
+@Serializable
+data class UserRequest(val email: String, val password: String, val firstName: String? = null, val lastName: String? = null)
