@@ -72,7 +72,8 @@ data class Audiologist @JsonCreator constructor(
     @JsonProperty("qualifications") val qualifications: String = "",
     @JsonProperty("email") val email: String = "",
     @JsonProperty("phone") val phone: String = "",
-    @JsonProperty("workSchedule") val workSchedule: Map<String, WorkHours> = mapOf()
+    @JsonProperty("workSchedule") val workSchedule: Map<String, WorkHours> = mapOf(),
+    @JsonProperty("password") val password: String = ""
 )
 
 @Serializable
