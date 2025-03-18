@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getHearingAidById, HearingAid as BasicHearingAid } from '../services/authService';
+import { getHearingAidById, HearingAid as BasicHearingAid } from '../services/hearingAidService';
+import HearingAidVisualiser from '../components/HearingAidVisualiser';
 import '../styles/ProductPage.css';
 
 interface Feature {
@@ -27,6 +28,20 @@ interface Review {
   verified: boolean;
 }
 
+const getColorName = (hexColor: string): string => {
+  const colorMap: Record<string, string> = {
+    '#4e312d': 'chestnut-standard', // Chestnut
+    '#bec2cb': 'silver', // Silver
+    '#708090': 'graphite-gray', // Slate Gray
+    '#CD7F32': 'caramel', // Bronze
+    '#F7E7CE': 'beige', // Cream
+    '#FFFFFF': 'white', // White (if needed)
+    '#000000': 'tech-black' // Black (if needed)
+  };
+  
+  return colorMap[hexColor] || 'silver'; // Default to silver if color not found
+};
+
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -36,6 +51,8 @@ const ProductPage: React.FC = () => {
   const [product, setProduct] = useState<HearingAid | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visualiserSupported, setVisualiserSupported] = useState(false);
+  const [showVisualiser, setShowVisualiser] = useState(false);
 
   // Mock reviews data
   const reviews: Review[] = [
@@ -70,6 +87,10 @@ const ProductPage: React.FC = () => {
 
       try {
         const hearingAidData = await getHearingAidById(id);
+        
+        // Check if this model supports the 3D visualiser
+        const supports3DVisualiser = id === '2'; // Edge AI 24 mRIC
+        setVisualiserSupported(supports3DVisualiser);
         
         // Transform basic hearing aid data to extended format with default values
         const extendedData: HearingAid = {
@@ -139,6 +160,10 @@ const ProductPage: React.FC = () => {
     setIsCompareModalOpen(true);
   };
 
+  const toggleVisualiser = () => {
+    setShowVisualiser(!showVisualiser);
+  };
+
   if (loading) {
     return <div className="loading">Loading product information...</div>;
   }
@@ -152,27 +177,44 @@ const ProductPage: React.FC = () => {
       <div className="product-container">
         {/* Product Gallery */}
         <div className="product-gallery">
-          <div className="main-image">
-            <img 
-              src={product.images?.[selectedImage] || product.image} 
-              alt={`${product.name} - View ${selectedImage + 1}`} 
+          {showVisualiser ? (
+            <HearingAidVisualiser 
+              productId={product.id}
+              selectedColor={selectedColor}
+              onVisualiserClose={() => setShowVisualiser(false)}
             />
-          </div>
-          <div className="image-thumbnails">
-            {(product.images || [product.image]).map((image, index) => (
-              <button
-                key={index}
-                className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
-                onClick={() => setSelectedImage(index)}
-              >
-                <img src={image} alt={`${product.name} - Thumbnail ${index + 1}`} />
+          ) : (
+            <>
+              <div className="main-image">
+                <img 
+                  src={product.images?.[selectedImage] || product.image} 
+                  alt={`${product.name} - View ${selectedImage + 1}`} 
+                />
+              </div>
+              <div className="image-thumbnails">
+                {(product.images || [product.image]).map((image, index) => (
+                  <button
+                    key={index}
+                    className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
+                    onClick={() => setSelectedImage(index)}
+                  >
+                    <img src={image} alt={`${product.name} - Thumbnail ${index + 1}`} />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <div className="gallery-actions">
+            {visualiserSupported && (
+              <button className="view-3d-button" onClick={toggleVisualiser}>
+                {showVisualiser ? 'View Photos' : 'View 3D Model'}
               </button>
-            ))}
+            )}
+            <button className="ar-button" onClick={startARExperience}>
+              <span className="ar-icon">👓</span>
+              Try On with AR
+            </button>
           </div>
-          <button className="ar-button" onClick={startARExperience}>
-            <span className="ar-icon">👓</span>
-            Try On with AR
-          </button>
         </div>
 
         {/* Product Info */}
@@ -201,7 +243,7 @@ const ProductPage: React.FC = () => {
                   style={{ backgroundColor: color.toLowerCase() }}
                   onClick={() => setSelectedColor(color)}
                 >
-                  <span className="color-name">{color}</span>
+                  <span className="color-name">{getColorName(color).replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())}</span>
                 </button>
               ))}
             </div>
