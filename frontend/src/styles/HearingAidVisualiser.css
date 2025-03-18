@@ -1,0 +1,141 @@
+.hearing-aid-visualiser {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.visualiser-content {
+  padding: 20px;
+}
+
+.visualiser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.visualiser-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.visualiser-close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+.visualiser-close-button:hover {
+  color: #333;
+}
+
+.visualiser-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  min-height: 300px;
+}
+
+.visualiser-image {
+  max-width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+}
+
+.rotation-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.rotation-label {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.rotation-range {
+  width: 100%;
+  margin-top: 8px;
+  -webkit-appearance: none;
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  outline: none;
+}
+
+.rotation-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0077cc;
+  cursor: pointer;
+}
+
+.rotation-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0077cc;
+  cursor: pointer;
+  border: none;
+}
+
+/* Additional styles for Product Page */
+.gallery-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.view-3d-button,
+.ar-button {
+  flex: 1;
+  padding: 10px 15px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.view-3d-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.view-3d-button:hover {
+  background-color: #e0e0e0;
+}
+
+.ar-button {
+  background-color: #0077cc;
+  color: white;
+}
+
+.ar-button:hover {
+  background-color: #0066b3;
+}
+
+.ar-icon {
+  margin-right: 8px;
+}
