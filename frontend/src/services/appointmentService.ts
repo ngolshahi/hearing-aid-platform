@@ -30,16 +30,6 @@ export interface AppointmentResponse {
   message: string;
 }
 
-export interface Audiologist {
-  id: string;
-  name: string;
-  image: string;
-  description: string;
-  qualifications: string;
-  email: string;
-  phone: string;
-}
-
 // Get available time slots for a specific date and appointment type
 export const getAvailableTimeSlots = async (date: string, appointmentTypeId: string): Promise<string[]> => {
   try {
@@ -69,16 +59,5 @@ export const bookAppointment = async (appointmentData: AppointmentRequest): Prom
       success: false,
       message: 'Network error occurred'
     };
-  }
-};
-
-// Get audiologist details by ID
-export const getAudiologistById = async (id: string): Promise<Audiologist | null> => {
-  try {
-    const response = await axios.get<Audiologist>(`${API_URL}/audiologists/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching audiologist with ID ${id}:`, error);
-    return null;
   }
 };
