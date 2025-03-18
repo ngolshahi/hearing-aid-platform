@@ -39,5 +39,31 @@ fun Route.audiologistRoutes() {
                 )
             }
         }
+        put("/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("message" to "Missing ID parameter")
+                )
+                
+                val audiologist = call.receive<Audiologist>()
+                
+                // Ensure the ID in the path matches the ID in the body
+                if (id != audiologist.id) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("message" to "ID in path does not match ID in request body")
+                    )
+                }
+                
+                val updatedAudiologist = audiologistService.updateAudiologist(audiologist)
+                call.respond(HttpStatusCode.OK, updatedAudiologist)
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("message" to "Failed to update audiologist: ${e.message}")
+                )
+            }
+        }
     }
 }
