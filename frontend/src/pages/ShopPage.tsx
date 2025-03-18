@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ShopPage.css';
 import Quiz from './Quiz';
-import { getHearingAids, HearingAid } from '../services/authService';
+import { getHearingAids, HearingAid } from '../services/hearingAidService';
 
 const ShopPage: React.FC = () => {
   const navigate = useNavigate();
