@@ -13,4 +13,9 @@ class AudiologistService(private val audiologistRepository: AudiologistRepositor
     fun getAllAudiologists(): List<Audiologist> {
         return audiologistRepository.getAllAudiologists()
     }
+
+    fun updateAudiologist(audiologist: Audiologist): Audiologist {
+        return audiologistRepository.updateAudiologist(audiologist)
+    }
+
 }
