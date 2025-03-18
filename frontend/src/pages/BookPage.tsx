@@ -7,10 +7,9 @@ import {
   getAvailableTimeSlots, 
   bookAppointment, 
   AppointmentRequest,
-  AppointmentResponse,
-  Audiologist,
-  getAudiologistById
+  AppointmentResponse
 } from '../services/appointmentService';
+import {Audiologist,getAudiologistById} from '../services/audiologistService';
 
 interface LocationState {
   selectedService?: string;
@@ -218,6 +217,28 @@ const BookPage: React.FC = () => {
               image: "/images/audiologist.png",
               description: "Dr. Thompson has over 15 years of experience in audiology, specializing in hearing aid fitting and rehabilitation.",
               qualifications: "BSc Audiology, PhD Hearing Sciences",
+              workSchedule: {
+                "monday": {
+                    "start": "09:00",
+                    "end": "18:00"
+                },
+                "tuesday": {
+                    "start": "09:00",
+                    "end": "18:00"
+                },
+                "wednesday": {
+                    "start": "09:00",
+                    "end": "18:00"
+                },
+                "thursday": {
+                    "start": "09:00",
+                    "end": "18:00"
+                },
+                "friday": {
+                    "start": "09:00",
+                    "end": "18:00"
+                }
+              },  
               email: "sarah.thompson@auralise.com",
               phone: "07700 900123"
             });
