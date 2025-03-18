@@ -1,4 +1,3 @@
-// repository/AudiologistRepository.kt
 package repository
 
 import com.azure.cosmos.models.PartitionKey
@@ -24,5 +23,15 @@ class AudiologistRepository {
         
         queryIterable.forEach { audiologists.add(it) }
         return audiologists
+    }
+
+    fun updateAudiologist(audiologist: Audiologist): Audiologist {
+        val response = audiologistsContainer.replaceItem(
+            audiologist,
+            audiologist.id,
+            PartitionKey(audiologist.id),
+            null
+        )
+        return response.item
     }
 }
