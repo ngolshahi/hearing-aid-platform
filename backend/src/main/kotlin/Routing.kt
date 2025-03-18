@@ -10,6 +10,9 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import routes.userRoutes
 import routes.hearingAidRoutes
+import routes.audiologistRoutes
+import routes.appointmentRoutes
+
 
 @Serializable
 data class LoginRequest(val email: String, val password: String)
@@ -32,5 +35,7 @@ fun Application.configureRouting() {
         }
         userRoutes() 
         hearingAidRoutes()
+        appointmentRoutes()
+        audiologistRoutes()
     }
 }
