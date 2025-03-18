@@ -7,15 +7,10 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import model.UserRequest
+import model.LoginRequest
+import model.AuthResponse
 
-@Serializable
-data class UserRequest(val email: String, val password: String, val firstName: String? = null, val lastName: String? = null)
-
-@Serializable
-data class LoginRequest(val email: String, val password: String)
-
-@Serializable
-data class AuthResponse(val email: String?, val token: String?, val message: String)
 
 fun Route.userRoutes() {
     val authService = AuthService()
