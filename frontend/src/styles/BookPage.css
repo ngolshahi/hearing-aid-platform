@@ -448,3 +448,56 @@
     font-size: 1rem;
   }
 }
+
+/* BookPage.css additions */
+.loading-spinner {
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  color: #666;
+}
+
+.error-message {
+  color: #d32f2f;
+  background-color: #ffebee;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.no-slots-message {
+  color: #ff9800;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.booking-status {
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.booking-status.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.booking-status.error {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+.appointment-summary {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  margin: 20px 0;
+}
+
+.appointment-summary h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
