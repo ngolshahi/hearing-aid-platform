@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import '../styles/BookPage.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Quiz from './Quiz';
-
-interface Audiologist {
-  id: number;
-  name: string;
-  image: string;
-  description: string;
-  qualifications: string;
-  email: string;
-  phone: string;
-}
+import { getCurrentUser } from '../services/authService';
+import { 
+  getAvailableTimeSlots, 
+  bookAppointment, 
+  AppointmentRequest,
+  AppointmentResponse,
+  Audiologist,
+  getAudiologistById
+} from '../services/appointmentService';
 
 interface LocationState {
   selectedService?: string;
@@ -21,10 +20,13 @@ const BookPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { selectedService } = (location.state as LocationState) || {};
+  
   const [step, setStep] = useState(1);
+  const [appointmentTypeId, setAppointmentTypeId] = useState('');
   const [appointmentType, setAppointmentType] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -36,6 +38,10 @@ const BookPage: React.FC = () => {
     postcode: '',
   });
   const [showQuiz, setShowQuiz] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [audiologist, setAudiologist] = useState<Audiologist | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<{success: boolean; message: string} | null>(null);
 
   const appointmentTypes = [
     {
@@ -64,25 +70,40 @@ const BookPage: React.FC = () => {
     },
   ];
 
-  // Mock audiologist data
-  const audiologist: Audiologist = {
-    id: 1,
-    name: 'Dr. Sarah Thompson',
-    image: '/images/audiologist.png',
-    description: 'Dr. Thompson has over 15 years of experience in audiology, specializing in hearing aid fitting and rehabilitation.',
-    qualifications: 'BSc Audiology, PhD Hearing Sciences',
-    email: 'sarah.thompson@auralise.com',
-    phone: '07700 900123',
-  };
+  // Fetch available time slots when date and appointment type are selected
+  useEffect(() => {
+    const fetchTimeSlots = async () => {
+      if (selectedDate && appointmentTypeId) {
+        setIsLoading(true);
+        setErrorMessage('');
+        try {
+          const slots = await getAvailableTimeSlots(selectedDate, appointmentTypeId);
+          setAvailableTimeSlots(slots);
+          if (slots.length === 0) {
+            setErrorMessage('No available time slots for the selected date.');
+          }
+        } catch (error) {
+          setErrorMessage('Failed to fetch available time slots. Please try again.');
+          console.error('Error fetching time slots:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchTimeSlots();
+  }, [selectedDate, appointmentTypeId]);
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour < 19; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      slots.push(`${hour.toString().padStart(2, '0')}:30`);
+  // Set appointment type based on selected service from previous page
+  useEffect(() => {
+    if (selectedService) {
+      const selectedAppointment = appointmentTypes.find(apt => apt.id === selectedService);
+      if (selectedAppointment) {
+        setAppointmentType(selectedAppointment.type);
+        setAppointmentTypeId(selectedAppointment.id);
+      }
     }
-    return slots;
-  };
+  }, [selectedService]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const date = new Date(e.target.value);
@@ -95,6 +116,8 @@ const BookPage: React.FC = () => {
     }
     
     setSelectedDate(e.target.value);
+    // Reset selected time when date changes
+    setSelectedTime('');
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,38 +128,112 @@ const BookPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAppointmentTypeSelect = (type: string, id: string) => {
+    setAppointmentType(type);
+    setAppointmentTypeId(id);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log({
-      appointmentType,
-      selectedDate,
-      selectedTime,
-      notes,
-      ...formData
-    });
+    setIsLoading(true);
+    setErrorMessage('');
+    
+    try {
+      const currentUser = getCurrentUser();
+      
+      const appointmentRequest: AppointmentRequest = {
+        appointmentTypeId,
+        date: selectedDate,
+        time: selectedTime,
+        userId: currentUser?.userId || undefined,
+        notes,
+        userDetails: {
+          firstName: formData.firstName,
+          surname: formData.surname,
+          addressNumber: formData.addressNumber,
+          street: formData.street,
+          city: formData.city,
+          county: formData.county,
+          postcode: formData.postcode
+        }
+      };
+      
+      const response = await bookAppointment(appointmentRequest);
+      setBookingStatus({
+        success: response.success,
+        message: response.message
+      });
+      
+      if (response.success) {
+        // Reset form and redirect to confirmation page or show success message
+        setTimeout(() => {
+          navigate('/booking-confirmation', { 
+            state: { 
+              appointmentId: response.appointmentId,
+              appointmentType,
+              date: selectedDate,
+              time: selectedTime,
+              audiologist
+            } 
+          });
+        }, 2000);
+      }
+    } catch (error) {
+      setErrorMessage('Failed to book appointment. Please try again later.');
+      console.error('Error booking appointment:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleQuizComplete = (results: any) => {
     setShowQuiz(false);
     if (results.appointmentType) {
-      // Find the matching appointment type and set it
       const appointmentMatch = appointmentTypes.find(apt => apt.id === results.appointmentType);
       if (appointmentMatch) {
         setAppointmentType(appointmentMatch.type);
+        setAppointmentTypeId(appointmentMatch.id);
       }
     }
   };
 
-  useEffect(() => {
-    if (selectedService) {
-      // Find the appointment type that matches the selected service ID
-      const selectedAppointment = appointmentTypes.find(apt => apt.id === selectedService);
-      if (selectedAppointment) {
-        setAppointmentType(selectedAppointment.type);
-      }
+  // Move to next step - fetch audiologist when moving to step 2
+  const handleNextStep = async (nextStep: number) => {
+    if (nextStep === 2) {
+      setIsLoading(true);
+      // This would typically be a real API call to get the audiologist
+      // assigned for this appointment slot
+      // For now, we'll use a mock as there's no endpoint in the provided code
+      setTimeout(async () => {
+        try {
+          const mockAudiologistId = "1"; // In a real app, this would come from the backend
+          const fetchedAudiologist = await getAudiologistById(mockAudiologistId);
+          if (fetchedAudiologist) {
+            setAudiologist(fetchedAudiologist);
+          } else {
+            // Fallback to mock data if API fails
+            setAudiologist({
+              id: "1",
+              name: "Dr. Sarah Thompson",
+              image: "/images/audiologist.png",
+              description: "Dr. Thompson has over 15 years of experience in audiology, specializing in hearing aid fitting and rehabilitation.",
+              qualifications: "BSc Audiology, PhD Hearing Sciences",
+              email: "sarah.thompson@auralise.com",
+              phone: "07700 900123"
+            });
+          }
+          setIsLoading(false);
+          setStep(nextStep);
+        } catch (error) {
+          console.error('Error fetching audiologist:', error);
+          setErrorMessage('Failed to fetch audiologist information.');
+          setIsLoading(false);
+        }
+      }, 1000);
+    } else {
+      setStep(nextStep);
     }
-  }, [selectedService]);
+  };
 
   return (
     <div className="book-page">
@@ -152,6 +249,16 @@ const BookPage: React.FC = () => {
           <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>3</div>
         </div>
 
+        {bookingStatus && (
+          <div className={`booking-status ${bookingStatus.success ? 'success' : 'error'}`}>
+            {bookingStatus.message}
+          </div>
+        )}
+
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
+
+        {isLoading && <div className="loading-spinner">Loading...</div>}
+
         <form onSubmit={handleSubmit}>
           {/* Step 1: Appointment Details */}
           {step === 1 && (
@@ -162,7 +269,7 @@ const BookPage: React.FC = () => {
                   <div
                     key={apt.type}
                     className={`appointment-type ${appointmentType === apt.type ? 'selected' : ''}`}
-                    onClick={() => setAppointmentType(apt.type)}
+                    onClick={() => handleAppointmentTypeSelect(apt.type, apt.id)}
                   >
                     <span className="appointment-icon">{apt.icon}</span>
                     <h3>{apt.type}</h3>
@@ -204,14 +311,18 @@ const BookPage: React.FC = () => {
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
                     required
+                    disabled={availableTimeSlots.length === 0 || !selectedDate}
                   >
                     <option value="">Select a time</option>
-                    {generateTimeSlots().map((time) => (
+                    {availableTimeSlots.map((time) => (
                       <option key={time} value={time}>
                         {time}
                       </option>
                     ))}
                   </select>
+                  {selectedDate && availableTimeSlots.length === 0 && !isLoading && (
+                    <p className="no-slots-message">No available slots for this date. Please try another date.</p>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -228,8 +339,8 @@ const BookPage: React.FC = () => {
               <button 
                 type="button" 
                 className="next-button"
-                onClick={() => setStep(2)}
-                disabled={!appointmentType || !selectedDate || !selectedTime}
+                onClick={() => handleNextStep(2)}
+                disabled={!appointmentType || !selectedDate || !selectedTime || isLoading}
               >
                 Next
               </button>
@@ -237,7 +348,7 @@ const BookPage: React.FC = () => {
           )}
 
           {/* Step 2: Audiologist Details */}
-          {step === 2 && (
+          {step === 2 && audiologist && (
             <div className="booking-step">
               <h2>Your Audiologist</h2>
               <div className="audiologist-card">
@@ -252,11 +363,17 @@ const BookPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+              <div className="appointment-summary">
+                <h3>Appointment Summary</h3>
+                <p><strong>Type:</strong> {appointmentType}</p>
+                <p><strong>Date:</strong> {new Date(selectedDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p><strong>Time:</strong> {selectedTime}</p>
+              </div>
               <div className="button-group">
                 <button type="button" className="back-button" onClick={() => setStep(1)}>
                   Back
                 </button>
-                <button type="button" className="next-button" onClick={() => setStep(3)}>
+                <button type="button" className="next-button" onClick={() => handleNextStep(3)}>
                   Next
                 </button>
               </div>
@@ -357,8 +474,12 @@ const BookPage: React.FC = () => {
                 <button type="button" className="back-button" onClick={() => setStep(2)}>
                   Back
                 </button>
-                <button type="submit" className="submit-button">
-                  Book Appointment
+                <button 
+                  type="submit" 
+                  className="submit-button"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Booking...' : 'Book Appointment'}
                 </button>
               </div>
             </div>
