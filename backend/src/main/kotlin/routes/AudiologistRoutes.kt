@@ -6,6 +6,13 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import services.AudiologistService
+import kotlinx.serialization.Serializable
+import io.ktor.server.request.*
+import model.Audiologist
+import model.LoginRequest
+import model.AuthResponse
+
+
 
 fun Route.audiologistRoutes() {
     val audiologistService = AudiologistService()
@@ -31,7 +38,12 @@ fun Route.audiologistRoutes() {
                 )
                 
                 val audiologist = audiologistService.getAudiologistById(id)
-                call.respond(HttpStatusCode.OK, audiologist)
+
+                if (audiologist != null) {
+                    call.respond(HttpStatusCode.OK, audiologist)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("message" to "Audiologist not found"))
+                }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -57,11 +69,33 @@ fun Route.audiologistRoutes() {
                 }
                 
                 val updatedAudiologist = audiologistService.updateAudiologist(audiologist)
-                call.respond(HttpStatusCode.OK, updatedAudiologist)
+
+                if (updatedAudiologist != null) {
+                    call.respond(HttpStatusCode.OK, updatedAudiologist)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("message" to "Failed to update audiologist"))
+                }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     mapOf("message" to "Failed to update audiologist: ${e.message}")
+                )
+            }
+        }
+        post("/login") {
+            try {
+                val loginRequest = call.receive<LoginRequest>()
+                val audiologist = audiologistService.authenticateAudiologist(loginRequest.email, loginRequest.password)
+                
+                if (audiologist != null) {  // Change this condition
+                    call.respond(HttpStatusCode.OK, audiologist)
+                } else {
+                    call.respond(HttpStatusCode.Unauthorized, mapOf("message" to "Failed to login"))
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.BadRequest, 
+                    mapOf("message" to "Failed to login")
                 )
             }
         }
