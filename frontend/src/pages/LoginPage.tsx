@@ -53,14 +53,15 @@ const LoginPage: React.FC = () => {
         });
   
         // Check for successful login - the token must exist AND not be null
-        if (response && response.token) {
+        if (response && response.email) {
           // Login successful - store the token in localStorage or context
-          localStorage.setItem('authToken', response.token);
+          localStorage.setItem('authToken', response.email);
           alert('Logged in successfully.');
+          console.log('Logged in successfully as ' + localStorage.getItem('user'));
           navigate('/'); // Redirect to home page
         } else {
           // Login failed
-          setError(response.message || 'Invalid email or password');
+          setError('Invalid email or password');
         }
       } else {
         // Handle registration (unchanged)
@@ -71,13 +72,13 @@ const LoginPage: React.FC = () => {
           lastName: formData.lastName
         });
   
-        if (response.message === 'User created successfully') {
+        if (response && response.email) {
           // Registration successful
           alert('Account created successfully! Please log in.');
           navigate('/login');
         } else {
           // Registration failed
-          setError(response.message || 'Registration failed');
+          setError('Registration failed');
         }
       }
     } catch (err) {
