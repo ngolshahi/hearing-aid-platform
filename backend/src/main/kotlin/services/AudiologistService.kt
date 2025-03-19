@@ -6,7 +6,7 @@ import model.Audiologist
 
 class AudiologistService(private val audiologistRepository: AudiologistRepository = AudiologistRepository()) {
     
-    fun getAudiologistById(id: String): Audiologist {
+    fun getAudiologistById(id: String): Audiologist? {
         return audiologistRepository.getAudiologistById(id)
     }
     
@@ -14,8 +14,13 @@ class AudiologistService(private val audiologistRepository: AudiologistRepositor
         return audiologistRepository.getAllAudiologists()
     }
 
-    fun updateAudiologist(audiologist: Audiologist): Audiologist {
+    fun updateAudiologist(audiologist: Audiologist): Audiologist? {
         return audiologistRepository.updateAudiologist(audiologist)
     }
+
+    fun authenticateAudiologist(username: String, password: String): Audiologist? {
+        return audiologistRepository.authenticateAudiologist(username, password)
+    }
+
 
 }
