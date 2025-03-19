@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { UserDetails } from './appointmentService';
 
 // Adjust this URL based on where your backend is running
 const API_URL = 'http://localhost:8080/api';
@@ -18,71 +19,91 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   userId: string | null;
+  email: string | null;
   token: string | null;
   message: string;
+  userType?: 'user' | 'audiologist';
 }
 
-// Feature interface for hearing aids
-export interface Feature {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-// Hearing Aid interface
-export interface HearingAid {
+export interface UserProfile {
   id: string;
   name: string;
-  subtitle?: string;
-  brand: string;
-  type: string;
-  price: number;
-  rating: number;
-  releaseDate: string;
-  colors: string[];
-  image: string;
-  images?: string[];
-  description: string;
-  features?: Feature[];
-  specifications?: Record<string, string>;
-  _rid?: string;
-  _self?: string;
-  _etag?: string;
-  _attachments?: string;
-  _ts?: number;
+  email: string;
+  image?: string;
+  phone?: string;
 }
 
+export interface AudiologistProfile extends UserProfile {
+  description: string;
+  qualifications: string;
+  workSchedule: Record<string, WorkHours>;
+}
+
+export interface WorkHours {
+  start: string;
+  end: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  image?: string;
+  details?: UserDetails;
+}
+
+export interface Audiologist {
+  id: string;
+  name: string;
+  image: string;
+  description: string;
+  qualifications: string;
+  email: string;
+  phone: string;
+  workSchedule: Record<string, WorkHours>;
+}
+
+
+
 // Register a new user
-export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
+export const register = async (data: RegisterRequest): Promise<User | null> => {
   try {
-    const response = await axios.post<AuthResponse>(`${API_URL}/users/register`, data);
+    const response = await axios.post<User>(`${API_URL}/users/register`, data);
+    if (response.data.email) {
+      localStorage.setItem('user', JSON.stringify(response.data));
+    }
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      return error.response.data as AuthResponse;
+      return null;
     }
-    return {
-      userId: null,
-      token: null,
-      message: 'Network error occurred'
-    };
+    return null;
   }
 };
 
-export const login = async (data: LoginRequest): Promise<AuthResponse> => {
+export const login = async (data: LoginRequest): Promise<User | Audiologist | null> => {
   try {
-    const response = await axios.post<AuthResponse>(`${API_URL}/users/login`, data);
-    return response.data;
-    
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      return error.response.data as AuthResponse;
+    // Try user login first
+    const response = await axios.post<User>(`${API_URL}/users/login`, data);
+    if (response.data.email) {
+      localStorage.setItem('user', JSON.stringify(response.data));
     }
-    return {
-      userId: null,
-      token: null,
-      message: 'Network error occurred'
-    };
+    return response.data;
+  } catch (error) {
+    try {
+      // If user login fails, try audiologist login
+      const audiologistResponse = await axios.post<Audiologist>(`${API_URL}/audiologists/login`, data);
+      if (audiologistResponse.data.email) {
+        localStorage.setItem('user', JSON.stringify(audiologistResponse.data));
+      }
+      return audiologistResponse.data;
+    } catch (innerError) {
+      if (axios.isAxiosError(innerError) && innerError.response) {
+        return null;
+      }
+      return null;
+    }
   }
 };
 
@@ -92,7 +113,7 @@ export const logout = (): void => {
 };
 
 // Get the current logged-in user from localStorage
-export const getCurrentUser = (): AuthResponse | null => {
+export const getCurrentUser = (): User | Audiologist | null => {
   const userStr = localStorage.getItem('user');
   if (userStr) {
     return JSON.parse(userStr);
@@ -102,27 +123,49 @@ export const getCurrentUser = (): AuthResponse | null => {
 
 // Check if a user is currently logged in
 export const isAuthenticated = (): boolean => {
-  return getCurrentUser()?.token !== undefined;
+  return getCurrentUser()?.email !== undefined && getCurrentUser()?.email !== null;
 };
 
-// Get all hearing aids
-export const getHearingAids = async (): Promise<HearingAid[]> => {
+// Get user profile
+export const getUserProfile = async (email: string): Promise<User | null> => {
   try {
-    const response = await axios.get<HearingAid[]>(`${API_URL}/hearingAids`);
+    const response = await axios.get<User>(`${API_URL}/users/${email}`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching hearing aids:', error);
-    throw error;
+    console.error(`Error fetching user profile for ${email}:`, error);
+    return null;
   }
 };
 
-// Get a specific hearing aid by ID
-export const getHearingAidById = async (id: string): Promise<HearingAid> => {
+// Get audiologist profile
+export const getAudiologistProfile = async (email: string): Promise<Audiologist| null> => {
   try {
-    const response = await axios.get<HearingAid>(`${API_URL}/hearingAids/${id}`);
+    const response = await axios.get<Audiologist>(`${API_URL}/audiologists/${email}`);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching hearing aid with ID ${id}:`, error);
-    throw error;
+    console.error(`Error fetching audiologist profile for ${email}:`, error);
+    return null;
+  }
+};
+
+// Update user profile
+export const updateUserProfile = async (email: string, data: Partial<User>): Promise<User | null> => {
+  try {
+    const response = await axios.put<User>(`${API_URL}/users/${email}`, data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating user profile for ${email}:`, error);
+    return null;
+  }
+};
+
+// Update audiologist profile
+export const updateAudiologistProfile = async (email: string, data: Partial<Audiologist>): Promise<Audiologist | null> => {
+  try {
+    const response = await axios.put<Audiologist>(`${API_URL}/audiologists/${email}`, data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating audiologist profile for ${email}:`, error);
+    return null;
   }
 };
