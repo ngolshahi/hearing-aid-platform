@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Header.css';
+import { useAuth } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, currentUser } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -35,8 +37,24 @@ const Header: React.FC = () => {
           </ul>
 
           <div className="auth-buttons">
-            <Link to="/login" className="login-button" onClick={closeMenu}>Login</Link>
-            <Link to="/signup" className="signup-button" onClick={closeMenu}>Sign Up</Link>
+            {isAuthenticated ? (
+              <Link to="/profile" className="profile-button" onClick={closeMenu}>
+                <div className="profile-avatar">
+                  {currentUser?.image ? (
+                    <img src={currentUser.image} alt="Profile" className="profile-image" />
+                  ) : (
+                    <div className="profile-initials">
+                      {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="login-button" onClick={closeMenu}>Login</Link>
+                <Link to="/signup" className="signup-button" onClick={closeMenu}>Sign Up</Link>
+              </>
+            )}
           </div>
         </nav>
       </div>
