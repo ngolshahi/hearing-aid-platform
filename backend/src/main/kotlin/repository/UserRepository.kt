@@ -22,21 +22,21 @@ class UserRepository {
         }
     }
 
-    suspend fun createUser(name: String, email: String, password: String): HttpStatusCode {
+    suspend fun createUser(name: String, email: String, password: String): User? {
         // In a real app, hash the password before storing
         val user = User(id = email, name = name, email = email, password = password)
         
-        return try {
+        try {
             val itemResponse = container.createItem(user)
             if (itemResponse.statusCode == 201) {
-                HttpStatusCode.Created
+                return user
             } else {
-                HttpStatusCode.InternalServerError
+                return null
             }
         } catch (e: Exception) {
             println("Error creating user.")
             e.printStackTrace()
-            HttpStatusCode.InternalServerError
+            return null
         }
     }
 
