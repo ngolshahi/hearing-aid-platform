@@ -1,0 +1,552 @@
+/* Profile page styling to match HomePage.css */
+.profile-page {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    font-family: 'Outfit', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #1a1a2e;
+    background-color: #fcfcfc;
+    min-height: 100vh;
+  }
+  
+  /* Profile header section with background */
+  .profile-header {
+    background: linear-gradient(135deg, rgba(26, 32, 44, 0.95), rgba(44, 82, 130, 0.85));
+    padding: 4rem 2rem 2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .profile-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to top, #fcfcfc, transparent);
+    z-index: 1;
+  }
+  
+  .profile-header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Large avatar styling */
+  .profile-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #2c5282;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    border: 4px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .profile-image-large {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .profile-initials-large {
+    color: white;
+    font-weight: 700;
+    font-size: 3rem;
+  }
+  
+  /* Profile info text */
+  .profile-info h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  
+  .profile-email {
+    font-size: 1.1rem;
+    opacity: 0.85;
+  }
+  
+  /* Main container for profile content */
+  .profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  /* Profile tabs styling */
+  .profile-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1px;
+  }
+  
+  .tab-button {
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #4a5568;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+  }
+  
+  .tab-button:hover {
+    color: #2c5282;
+  }
+  
+  .tab-button.active {
+    color: #2c5282;
+    border-bottom-color: #2c5282;
+    font-weight: 600;
+  }
+  
+  /* Profile content area */
+  .profile-content {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
+    padding: 2rem;
+    min-height: 400px;
+  }
+  
+  /* Personal info section */
+  .info-card {
+    background: linear-gradient(145deg, #f9fafb, #f1f5f9);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .info-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #1a202c;
+    font-weight: 600;
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #4a5568;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    background-color: #f8fafc;
+    color: #1a202c;
+  }
+  
+  /* Account actions */
+  .account-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+  }
+  
+  /* Appointment cards */
+  .appointment-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .appointment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(145deg, #f9fafb, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .appointment-type {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #1a202c;
+  }
+  
+  .appointment-status {
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+  }
+  
+  .confirmed {
+    background-color: rgba(72, 187, 120, 0.1);
+    color: #2f855a;
+  }
+  
+  .pending {
+    background-color: rgba(237, 137, 54, 0.1);
+    color: #c05621;
+  }
+  
+  .appointment-details {
+    padding: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+  
+  .appointment-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .appointment-icon {
+    font-style: normal;
+    font-size: 1.25rem;
+  }
+  
+  .appointment-actions {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .no-appointments, .no-orders {
+    text-align: center;
+    padding: 3rem 0;
+  }
+  
+  .no-appointments p, .no-orders p {
+    margin-bottom: 1.5rem;
+    color: #718096;
+    font-size: 1.1rem;
+  }
+  
+  /* Order cards */
+  .order-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(145deg, #f9fafb, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .order-number {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #4a5568;
+  }
+  
+  .order-status {
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+  }
+  
+  .shipped {
+    background-color: rgba(49, 130, 206, 0.1);
+    color: #2b6cb0;
+  }
+  
+  .delivered {
+    background-color: rgba(72, 187, 120, 0.1);
+    color: #2f855a;
+  }
+  
+  .processing {
+    background-color: rgba(237, 137, 54, 0.1);
+    color: #c05621;
+  }
+  
+  .order-product {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .product-image-small {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #f7fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .placeholder-image {
+    width: 60%;
+    height: 60%;
+    background-color: #e2e8f0;
+    border-radius: 6px;
+  }
+  
+  .product-details {
+    flex-grow: 1;
+  }
+  
+  .product-details h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    color: #1a202c;
+    font-weight: 600;
+  }
+  
+  .product-details p {
+    color: #718096;
+    font-size: 0.95rem;
+  }
+  
+  .product-price {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #2c5282;
+  }
+  
+  .order-footer {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .order-date {
+    color: #718096;
+    font-size: 0.95rem;
+  }
+  
+  /* Button styles matching HomePage.css */
+  .primary-button {
+    background: linear-gradient(135deg, #2c5282, #2a4365);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(44, 82, 130, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .primary-button:hover {
+    background: linear-gradient(135deg, #2a4365, #1e3a8a);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(44, 82, 130, 0.25);
+  }
+  
+  .secondary-button {
+    background-color: transparent;
+    color: #2c5282;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #2c5282;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .secondary-button:hover {
+    background-color: #2c5282;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(44, 82, 130, 0.15);
+  }
+  
+  .outlined-button {
+    background-color: transparent;
+    color: #4a5568;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .outlined-button:hover {
+    background-color: #f7fafc;
+    border-color: #cbd5e0;
+    transform: translateY(-3px);
+  }
+  
+  .danger-button {
+    background-color: transparent;
+    color: #e53e3e;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #e53e3e;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .danger-button:hover {
+    background-color: #e53e3e;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(229, 62, 62, 0.15);
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .profile-header-content {
+      flex-direction: column;
+      text-align: center;
+    }
+  
+    .profile-info h1 {
+      font-size: 2rem;
+    }
+  
+    .profile-tabs {
+      flex-wrap: wrap;
+    }
+  
+    .tab-button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      min-width: 100px;
+      text-align: center;
+    }
+  
+    .account-actions {
+      flex-direction: column;
+      gap: 1rem;
+    }
+  
+    .account-actions button {
+      width: 100%;
+    }
+  
+    .appointment-header, .order-header, .order-footer {
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+  
+    .appointment-actions, .order-footer {
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+  
+    .appointment-actions button, .order-footer button {
+      width: 100%;
+    }
+  
+    .order-product {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .product-details {
+      width: 100%;
+    }
+  
+    .product-price {
+      margin-top: 0.75rem;
+    }
+  }
+  
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: reduce) {
+    .primary-button, .secondary-button, .outlined-button, .danger-button, .tab-button {
+      transition: none;
+    }
+  }
+  
+  :focus {
+    outline: 3px solid #2c5282;
+    outline-offset: 2px;
+  }
+  
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .profile-header {
+      background: #1a202c;
+    }
+  
+    .info-card, .appointment-header, .order-header {
+      background: white;
+    }
+  
+    .tab-button.active {
+      border-bottom-color: black;
+      color: black;
+    }
+  
+    .primary-button,
+    .secondary-button,
+    .outlined-button,
+    .danger-button {
+      border: 2px solid #000;
+    }
+  
+    .appointment-card, .order-card {
+      border: 2px solid #000;
+    }
+  }
