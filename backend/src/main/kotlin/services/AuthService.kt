@@ -6,7 +6,7 @@ import io.ktor.http.HttpStatusCode
 
 class AuthService(private val userRepository: UserRepository = UserRepository()) {
     
-    suspend fun registerUser(name: String, email: String, password: String): HttpStatusCode {
+    suspend fun registerUser(name: String, email: String, password: String): User? {
         // In a real application, you should:
         // 1. Validate user input (email format, password strength, etc.)
         // 2. Check if user already exists
@@ -15,13 +15,13 @@ class AuthService(private val userRepository: UserRepository = UserRepository())
         
         val existingUser = userRepository.readUser(email)
         if (existingUser != null) {
-            return HttpStatusCode.Conflict // User already exists
+            return null // User already exists
         }
         
         return userRepository.createUser(name, email, password)
     }
     
-    fun authenticateUser(email: String, password: String): Boolean {
+    fun authenticateUser(email: String, password: String): User? {
         return userRepository.verifyPassword(email, password)
     }
 }
