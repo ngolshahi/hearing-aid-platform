@@ -25,24 +25,12 @@ fun Route.userRoutes() {
                 val result = authService.registerUser("${userRequest.firstName} ${userRequest.lastName}", userRequest.email, userRequest.password)
                 
                 if (result == HttpStatusCode.Created) {
-                    call.respond(HttpStatusCode.Created, AuthResponse(
-                        email = null, // You might want to return the created user ID here
-                        token = null, // For now, not implementing JWT tokens
-                        message = "User created successfully"
-                    ))
+                    call.respond(HttpStatusCode.Created, result)
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, AuthResponse(
-                        email = null,
-                        token = null,
-                        message = "Failed to create user"
-                    ))
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Failed to register"))
                 }
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.BadRequest, AuthResponse(
-                    email = null,
-                    token = null,
-                    message = e.message ?: "Invalid request"
-                ))
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to register"))
             }
         }
         
@@ -50,18 +38,13 @@ fun Route.userRoutes() {
             try {
                 val loginRequest = call.receive<LoginRequest>()
                 
-                if (authService.authenticateUser(loginRequest.email, loginRequest.password)) {
-                    call.respond(HttpStatusCode.OK, AuthResponse(
-                        email = loginRequest.email,
-                        token = "dummy-token", // In a real app, generate a JWT token here
-                        message = "Login successful"
-                    ))
+                // Change this line - authenticateUser returns User?, not Boolean
+                val user = authService.authenticateUser(loginRequest.email, loginRequest.password)
+                
+                if (user != null) {  // Check if the user exists
+                    call.respond(HttpStatusCode.OK, user)
                 } else {
-                    call.respond(HttpStatusCode.Unauthorized, AuthResponse(
-                        email = null,
-                        token = null,
-                        message = "Invalid credentials"
-                    ))
+                    call.respond(HttpStatusCode.Unauthorized, mapOf("message" to "Failed to login"))
                 }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, AuthResponse(
