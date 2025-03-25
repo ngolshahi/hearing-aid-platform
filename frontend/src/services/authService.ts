@@ -154,8 +154,14 @@ export const getAudiologistProfile = async (email: string): Promise<Audiologist|
 // Update user profile
 export const updateUserProfile = async (data: User): Promise<User | null> => {
   try {
-    const response = await axios.put<User>(`${API_URL}/users/${email}`, data);
-    return response.data;
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      const response = await axios.put<User>(`${API_URL}/users/${currentUser.id}`, data);
+      return response.data;
+    } else {
+       console.error(`Not logged in`);
+       return null
+    }
   } catch (error) {
     console.error(`Error updating user profile for ${email}:`, error);
     return null;
