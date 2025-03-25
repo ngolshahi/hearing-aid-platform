@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/LoginPage.css';
-import { login, register } from '../services/authService';
+import { isAuthenticated, login, register } from '../services/authService';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,11 +17,27 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
 
   // Update isLogin when path changes
   useEffect(() => {
+
+    const checkAuth = async () => {
+      try {
+        const authStatus = await isAuthenticated();
+        if (authStatus) {
+          // If authenticated, redirect to profile page
+          navigate('/profile');
+        }
+      } catch (err) {
+        console.error('Authentication check failed', err);
+      }
+    };
+
+    checkAuth();
+    
     setIsLogin(location.pathname === '/login');
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -58,7 +74,7 @@ const LoginPage: React.FC = () => {
           localStorage.setItem('authToken', response.email);
           alert('Logged in successfully.');
           console.log('Logged in successfully as ' + localStorage.getItem('user'));
-          navigate('/'); // Redirect to home page
+          navigate('/'); 
         } else {
           // Login failed
           setError('Invalid email or password');
