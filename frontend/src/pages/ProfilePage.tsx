@@ -256,6 +256,40 @@ const ProfilePage: React.FC = () => {
                     Delete Account
                   </button>
                 </div>
+
+                {/* Delete Account Confirmation Modal */}
+                {showDeleteConfirmation && (
+                  <div className="delete-confirmation-modal">
+                    <div className="modal-content">
+                      <h2>Delete Account</h2>
+                      <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+                      <p>Please type "DELETE MY ACCOUNT" to confirm:</p>
+                      <input 
+                        type="text" 
+                        value={deleteConfirmationText}
+                        onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                        placeholder="Type DELETE MY ACCOUNT"
+                      />
+                      <div className="modal-actions">
+                        <button 
+                          className="danger-button" 
+                          onClick={handleDeleteAccount}
+                        >
+                          Confirm Delete
+                        </button>
+                        <button 
+                          className="outlined-button" 
+                          onClick={() => {
+                            setShowDeleteConfirmation(false);
+                            setDeleteConfirmationText('');
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
