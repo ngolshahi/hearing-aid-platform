@@ -13,6 +13,105 @@ import '../styles/ProfilePage.css';
 const ProfilePage: React.FC = () => {
   const currentUser = getCurrentUser();
   const [activeTab, setActiveTab] = useState('personal');
+  
+  // State for editing profile
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({
+    name: currentUser?.name || '',
+    phone: currentUser?.phone || '',
+    email: currentUser?.email || '',
+    description: (currentUser as Audiologist)?.description || '',
+    qualifications: (currentUser as Audiologist)?.qualifications || '',
+    image: (currentUser as Audiologist)?.image || '',
+    workSchedule: (currentUser as Audiologist)?.workSchedule || '',
+    password: currentUser?.password || '',
+  });
+  
+  // State for delete account confirmation
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+
+  // Determine if the current user is an audiologist
+  const isAudiologist = currentUser && 'qualifications' in currentUser;
+
+  const handleEditProfile = async () => {
+    if (isEditing) {
+      try {
+        let updated;
+        
+        // Different update logic for audiologists and regular users
+        if (isAudiologist) {       
+          console.log('Trying to update user ' + currentUser.id)   
+          let updatedUser : Audiologist = {
+            id: currentUser.id,
+            name: editedProfile.name,
+            phone: editedProfile.phone,
+            email: editedProfile.email,
+            description: editedProfile.description,
+            qualifications: editedProfile.qualifications,
+            image: editedProfile.image,
+            workSchedule: editedProfile.workSchedule,
+            password: editedProfile.password,
+          }
+          updated = await updateAudiologistProfile(updatedUser);
+        } else {
+          if (currentUser) {
+            let updatedUser : User = {
+              id: currentUser.id,
+              email: editedProfile.email,
+              password: editedProfile.password,
+              name: editedProfile.name,
+              phone: editedProfile.phone
+            }
+            updated = await updateUserProfile(updatedUser);
+          } else {
+            console.log('Not logged in');
+            return;
+          }
+        }
+
+        if (updated) {
+          // Update localStorage with new user info
+          localStorage.setItem('user', JSON.stringify(updated));
+          
+          console.log('Setting is editing to false')
+          // Exit editing mode
+          setIsEditing(false);
+        } else {
+          console.error('Error updating profile');
+          alert('Failed to edit profile')
+          setIsEditing(false);
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('Failed to edit profile')
+        setIsEditing(false);
+      }
+    } else {
+      // Enter editing mode
+      setIsEditing(true);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    // Basic validation to prevent accidental deletion
+    if (deleteConfirmationText.toLowerCase() !== 'delete my account') {
+      alert('Please type "DELETE MY ACCOUNT" exactly to confirm.');
+      return;
+    }
+
+    try {
+      // Call backend to delete account (you'll need to implement this endpoint)
+      // For now, we'll use logout as a placeholder
+      logout();
+      
+      // Redirect to home or login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account. Please try again.');
+    }
+  };
 
   if (!currentUser) {
     return (
