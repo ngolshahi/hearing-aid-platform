@@ -236,7 +236,6 @@ const ProfilePage: React.FC = () => {
                           />
                         )}
                       </div>
-                      
                     </>
                   )}
                   <button className="primary-button">Edit Profile</button>
