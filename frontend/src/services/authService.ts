@@ -112,6 +112,7 @@ export const login = async (data: LoginRequest): Promise<User | Audiologist | nu
 // Log out the current user
 export const logout = (): void => {
   localStorage.removeItem('user');
+  window.location.reload();
 };
 
 // Get the current logged-in user from localStorage
