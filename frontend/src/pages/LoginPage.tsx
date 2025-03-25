@@ -74,7 +74,7 @@ const LoginPage: React.FC = () => {
           localStorage.setItem('authToken', response.email);
           alert('Logged in successfully.');
           console.log('Logged in successfully as ' + localStorage.getItem('user'));
-          navigate('/'); 
+          window.location.reload()
         } else {
           // Login failed
           setError('Invalid email or password');
