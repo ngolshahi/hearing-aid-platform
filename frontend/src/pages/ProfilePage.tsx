@@ -238,7 +238,13 @@ const ProfilePage: React.FC = () => {
                       </div>
                     </>
                   )}
-                  <button className="primary-button">Edit Profile</button>
+                  
+                  <button 
+                    className="primary-button"
+                    onClick={handleEditProfile}
+                  >
+                    {isEditing ? 'Save Changes' : 'Edit Profile'}
+                  </button>
                 </div>
 
                 <div className="account-actions">
