@@ -168,8 +168,7 @@ export const updateUserProfile = async (data: User): Promise<User | null> => {
   }
 };
 
-// Update audiologist profile
-export const updateAudiologistProfile = async (email: string, data: Partial<Audiologist>): Promise<Audiologist | null> => {
+export const updateAudiologistProfile = async (data: Audiologist): Promise<Audiologist | null> => {
   try {
     const response = await axios.put<Audiologist>(`${API_URL}/audiologists/${email}`, data);
     return response.data;
