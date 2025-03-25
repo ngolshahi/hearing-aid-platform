@@ -55,7 +55,11 @@ class AudiologistRepository {
             PartitionKey(audiologist.id),
             null
         )
-        return response.item
+        if (response.statusCode == 200) {
+            return audiologist
+        } else {
+            return response.item
+        }
     }
 
     fun authenticateAudiologist(email: String, password: String): Audiologist? {
