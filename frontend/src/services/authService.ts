@@ -180,7 +180,15 @@ export const updateAudiologistProfile = async (data: Audiologist): Promise<Audio
       return null;
     }
   } catch (error) {
-    console.error(`Error updating audiologist profile for ${email}:`, error);
+    if (axios.isAxiosError(error)) {
+      // More detailed error logging
+      console.error(`Error updating audiologist profile: ${error.message}`);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+    } else {
+      console.error('Unexpected error:', error);
+    }
     return null;
   }
 };
