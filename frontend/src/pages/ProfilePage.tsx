@@ -248,8 +248,13 @@ const ProfilePage: React.FC = () => {
                 </div>
 
                 <div className="account-actions">
-                  <button className="outlined-button" onClick={logout}>Log Out</button>
-                  <button className="danger-button">Delete Account</button>
+                  <button className="outlined-button" onClick={() => logout()}>Log Out</button>
+                  <button 
+                    className="danger-button" 
+                    onClick={() => setShowDeleteConfirmation(true)}
+                  >
+                    Delete Account
+                  </button>
                 </div>
               </div>
             )}
