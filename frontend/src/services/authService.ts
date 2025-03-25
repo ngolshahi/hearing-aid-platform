@@ -170,8 +170,15 @@ export const updateUserProfile = async (data: User): Promise<User | null> => {
 
 export const updateAudiologistProfile = async (data: Audiologist): Promise<Audiologist | null> => {
   try {
-    const response = await axios.put<Audiologist>(`${API_URL}/audiologists/${email}`, data);
-    return response.data;
+    const currentUser = getCurrentUser();
+    console.log(currentUser);
+    if (currentUser) {
+      const response = await axios.put<Audiologist>(`${API_URL}/audiologists/${currentUser.id}`, data);
+      return response.data;
+    } else {
+      console.error("Not logged in")
+      return null;
+    }
   } catch (error) {
     console.error(`Error updating audiologist profile for ${email}:`, error);
     return null;
