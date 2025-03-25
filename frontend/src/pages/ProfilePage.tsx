@@ -11,7 +11,7 @@ import {
 import '../styles/ProfilePage.css';
 
 const ProfilePage: React.FC = () => {
-  const { currentUser, logout } = useAuth();
+  const currentUser = getCurrentUser();
   const [activeTab, setActiveTab] = useState('personal');
 
   if (!currentUser) {
