@@ -63,6 +63,7 @@ export interface Audiologist {
   email: string;
   phone: string;
   workSchedule: Record<string, WorkHours>;
+  password: string;
 }
 
 
