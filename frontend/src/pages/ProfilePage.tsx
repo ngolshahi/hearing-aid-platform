@@ -181,6 +181,7 @@ const ProfilePage: React.FC = () => {
                       />
                     ) : (
                     <input type="text" value={currentUser.name} readOnly />
+                    )}
                   </div>
                   <div className="form-group">
                     <label>Email Address</label>
