@@ -163,7 +163,7 @@ export const updateUserProfile = async (data: User): Promise<User | null> => {
        return null
     }
   } catch (error) {
-    console.error(`Error updating user profile for ${email}:`, error);
+    console.error(`Error updating user profile for user`);
     return null;
   }
 };
