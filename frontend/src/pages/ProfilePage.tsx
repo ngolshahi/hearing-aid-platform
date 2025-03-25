@@ -204,8 +204,37 @@ const ProfilePage: React.FC = () => {
                   {isAudiologist && (
                     <>
                       <div className="form-group">
-                        <label>Phone Number</label>
-                        <input type="text" value={currentUser.phone || 'Not provided'} readOnly />
+                        <label>Description</label>
+                        {isEditing ? (
+                          <textarea 
+                            value={editedProfile.description} 
+                            onChange={(e) => setEditedProfile(prev => ({...prev, description: e.target.value}))}
+                            placeholder="Enter your professional description"
+                          />
+                        ) : (
+                          <input 
+                            type="text" 
+                            value={(currentUser as any).description || 'Not provided'} 
+                            readOnly 
+                          />
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label>Qualifications</label>
+                        {isEditing ? (
+                          <input 
+                            type="text" 
+                            value={editedProfile.qualifications} 
+                            onChange={(e) => setEditedProfile(prev => ({...prev, qualifications: e.target.value}))}
+                            placeholder="Enter your qualifications"
+                          />
+                        ) : (
+                          <input 
+                            type="text" 
+                            value={(currentUser as any).qualifications || 'Not provided'} 
+                            readOnly 
+                          />
+                        )}
                       </div>
                       
                     </>
