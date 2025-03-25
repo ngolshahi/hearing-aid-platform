@@ -173,6 +173,13 @@ const ProfilePage: React.FC = () => {
                   <h2>Personal Information</h2>
                   <div className="form-group">
                     <label>Full Name</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.name} 
+                        onChange={(e) => setEditedProfile(prev => ({...prev, name: e.target.value}))}
+                      />
+                    ) : (
                     <input type="text" value={currentUser.name} readOnly />
                   </div>
                   <div className="form-group">
