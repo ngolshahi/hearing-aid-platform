@@ -187,7 +187,22 @@ const ProfilePage: React.FC = () => {
                     <label>Email Address</label>
                     <input type="email" value={currentUser.email} readOnly />
                   </div>
-                  {currentUser.details && (
+                  <div className="form-group">
+                    <label>Phone Number</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.phone} 
+                        onChange={(e) => setEditedProfile(prev => ({...prev, phone: e.target.value}))}
+                        placeholder="Enter phone number"
+                      />
+                    ) : (
+                      <input type="text" value={currentUser.phone || 'Not provided'} readOnly />
+                    )}
+                  </div>
+                  
+                  {/* Audiologist-specific fields */}
+                  {isAudiologist && (
                     <>
                       <div className="form-group">
                         <label>Phone Number</label>
