@@ -577,3 +577,42 @@
     border: 2px solid #000;
   }
 }
+
+/* Loading and Error Message Styling */
+.loading-message,
+.error-message {
+  grid-column: 1 / -1;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-message p,
+.error-message p {
+  color: #4a5568;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.retry-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #2a4365;
+  transform: translateY(-2px);
+}
