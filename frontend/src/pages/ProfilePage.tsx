@@ -1,6 +1,13 @@
 // src/pages/ProfilePage.tsx
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { 
+  updateUserProfile, 
+  updateAudiologistProfile, 
+  getCurrentUser, 
+  Audiologist,
+  User,
+  logout 
+} from '../services/authService';
 import '../styles/ProfilePage.css';
 
 const ProfilePage: React.FC = () => {
