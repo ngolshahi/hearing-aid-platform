@@ -23,11 +23,13 @@ class UserRepository {
     }
 
     suspend fun createUser(name: String, email: String, password: String): User? {
+        println("Creating user")
         // In a real app, hash the password before storing
         val user = User(id = email, name = name, email = email, password = password)
         
         try {
             val itemResponse = container.createItem(user)
+            println("Status code " + itemResponse.statusCode)
             if (itemResponse.statusCode == 201) {
                 return user
             } else {
