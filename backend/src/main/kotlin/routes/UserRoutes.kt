@@ -24,7 +24,7 @@ fun Route.userRoutes() {
                 // Note: You need to update the User model to include email, password fields
                 val result = authService.registerUser("${userRequest.firstName} ${userRequest.lastName}", userRequest.email, userRequest.password)
                 
-                if (result == HttpStatusCode.Created) {
+                if (result != null) {
                     call.respond(HttpStatusCode.Created, result)
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Failed to register"))
