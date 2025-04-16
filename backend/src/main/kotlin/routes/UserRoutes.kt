@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 import model.UserRequest
 import model.LoginRequest
 import model.AuthResponse
+import model.User
 
 
 fun Route.userRoutes() {
@@ -52,6 +53,39 @@ fun Route.userRoutes() {
                     token = null,
                     message = e.message ?: "Invalid request"
                 ))
+            }
+        }
+        
+        // Add a route for updating users
+        put("/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("message" to "Missing ID parameter")
+                )
+                
+                val user = call.receive<User>()
+                
+                // Ensure the ID in the path matches the ID in the body
+                if (id != user.id) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("message" to "ID in path does not match ID in request body")
+                    )
+                }
+                
+                val updatedUser = authService.updateUser(user)
+
+                if (updatedUser != null) {
+                    call.respond(HttpStatusCode.OK, updatedUser)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("message" to "Failed to update user"))
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("message" to "Failed to update user: ${e.message}")
+                )
             }
         }
     }
