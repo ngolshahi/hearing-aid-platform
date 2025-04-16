@@ -91,7 +91,7 @@ class AppointmentRepository {
             val audiologist = findAvailableAudiologist(
                 appointmentRequest.date,
                 appointmentRequest.time,
-                appointmentType.duration
+                appointmentRequest.appointmentTypeId
             )
             
             if (audiologist == null) {
@@ -163,47 +163,136 @@ class AppointmentRepository {
     }
     
     /**
-     * Find an available audiologist for the requested time slot
+     * Find an available audiologist for a specific appointment request
      */
-    private fun findAvailableAudiologist(date: String, time: String, duration: Int): Audiologist? {
-        val audiologists = audiologistRepository.getAllAudiologists()
-        val bookedAppointments = getBookedAppointmentsForDate(date)
-        
-        val requestStartTime = LocalTime.parse(time)
-        val requestEndTime = requestStartTime.plusMinutes(duration.toLong())
-        val dateObj = LocalDate.parse(date)
-        val dayOfWeek = dateObj.dayOfWeek.name.lowercase()
-        
-        for (audiologist in audiologists) {
-            // Check if audiologist works on this day
-            val workSchedule = audiologist.workSchedule[dayOfWeek] ?: continue
+    fun findAvailableAudiologist(date: String, time: String, appointmentTypeId: String): Audiologist? {
+        try {
+            println("Finding available audiologist for date: $date, time: $time, appointmentTypeId: $appointmentTypeId")
             
-            // Check if requested time is within working hours
-            val workStart = LocalTime.parse(workSchedule.start)
-            val workEnd = LocalTime.parse(workSchedule.end)
+            // Get appointment type to determine duration
+            val appointmentType = getAppointmentTypeById(appointmentTypeId)
             
-            if (requestStartTime.isBefore(workStart) || requestEndTime.isAfter(workEnd)) {
-                continue
-            }
+            // Get all audiologists
+            val audiologists = audiologistRepository.getAllAudiologists()
+            println("Found ${audiologists.size} audiologists")
             
-            // Check if audiologist has any conflicting appointments
-            val hasConflict = bookedAppointments.any { appointment ->
-                if (appointment.audiologistId != audiologist.id) {
-                    return@any false
+            // Get all booked appointments for the date
+            val bookedAppointments = getBookedAppointmentsForDate(date)
+            
+            // Calculate the end time based on appointment duration
+            val requestStartTime = LocalTime.parse(time)
+            val requestEndTime = requestStartTime.plusMinutes(appointmentType.duration.toLong())
+            val dateObj = LocalDate.parse(date)
+            val dayOfWeek = dateObj.dayOfWeek.name.lowercase()
+            
+            // Find an available audiologist
+            for (audiologist in audiologists) {
+                println("Checking audiologist: ${audiologist.name}")
+                
+                // Check if audiologist works on this day
+                val workSchedule = audiologist.workSchedule[dayOfWeek]
+                if (workSchedule == null) {
+                    println("Audiologist ${audiologist.name} doesn't work on $dayOfWeek")
+                    continue
                 }
                 
-                val appointmentStart = LocalTime.parse(appointment.startTime)
-                val appointmentEnd = LocalTime.parse(appointment.endTime)
+                // Check if requested time is within working hours
+                val workStart = LocalTime.parse(workSchedule.start)
+                val workEnd = LocalTime.parse(workSchedule.end)
                 
-                // Check for overlap
-                (requestStartTime.isBefore(appointmentEnd) && requestEndTime.isAfter(appointmentStart))
+                if (requestStartTime.isBefore(workStart) || requestEndTime.isAfter(workEnd)) {
+                    println("Requested time is outside ${audiologist.name}'s working hours")
+                    continue
+                }
+                
+                // Check if audiologist has any conflicting appointments
+                val hasConflict = bookedAppointments.any { appointment ->
+                    if (appointment.audiologistId != audiologist.id) {
+                        return@any false
+                    }
+                    
+                    val appointmentStart = LocalTime.parse(appointment.startTime)
+                    val appointmentEnd = LocalTime.parse(appointment.endTime)
+                    
+                    // Check for overlap
+                    val overlaps = (requestStartTime.isBefore(appointmentEnd) && 
+                                   requestEndTime.isAfter(appointmentStart))
+                    
+                    if (overlaps) {
+                        println("Found conflicting appointment for ${audiologist.name} at $appointmentStart-$appointmentEnd")
+                    }
+                    
+                    overlaps
+                }
+                
+                if (!hasConflict) {
+                    println("Found available audiologist: ${audiologist.name}")
+                    return audiologist
+                }
             }
             
-            if (!hasConflict) {
-                return audiologist
-            }
+            println("No available audiologist found")
+            return null
+        } catch (e: Exception) {
+            println("Error finding available audiologist: ${e.message}")
+            e.printStackTrace()
+            return null
         }
-        
-        return null
+    }
+    
+    /**
+     * Get all appointments for a specific user
+     */
+    fun getUserAppointments(userId: String): List<Appointment> {
+        try {
+            println("Fetching appointments for user ID: $userId")
+            
+            // Properly escape the userId for use in the query
+            val sanitizedUserId = userId.replace("'", "''")
+            val query = "SELECT * FROM c WHERE c.userId = '$sanitizedUserId'"
+            val queryOptions = CosmosQueryRequestOptions()
+            
+            println("Executing query: $query")
+            
+            val appointments = mutableListOf<Appointment>()
+            val queryIterable = appointmentsContainer.queryItems(query, queryOptions, Appointment::class.java)
+            
+            queryIterable.forEach { appointments.add(it) }
+            println("Found ${appointments.size} appointments for user $userId")
+            
+            return appointments
+        } catch (e: Exception) {
+            println("Error fetching appointments for user $userId: ${e.message}")
+            e.printStackTrace()
+            return emptyList()
+        }
+    }
+    
+    /**
+     * Get all appointments for a specific audiologist
+     */
+    fun getAudiologistAppointments(audiologistId: String): List<Appointment> {
+        try {
+            println("Fetching appointments for audiologist ID: $audiologistId")
+            
+            // Properly escape the audiologistId for use in the query
+            val sanitizedAudiologistId = audiologistId.replace("'", "''")
+            val query = "SELECT * FROM c WHERE c.audiologistId = '$sanitizedAudiologistId'"
+            val queryOptions = CosmosQueryRequestOptions()
+            
+            println("Executing query: $query")
+            
+            val appointments = mutableListOf<Appointment>()
+            val queryIterable = appointmentsContainer.queryItems(query, queryOptions, Appointment::class.java)
+            
+            queryIterable.forEach { appointments.add(it) }
+            println("Found ${appointments.size} appointments for audiologist $audiologistId")
+            
+            return appointments
+        } catch (e: Exception) {
+            println("Error fetching appointments for audiologist $audiologistId: ${e.message}")
+            e.printStackTrace()
+            return emptyList()
+        }
     }
 }
