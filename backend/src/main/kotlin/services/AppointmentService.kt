@@ -14,6 +14,9 @@ import repository.AppointmentRepository
 import io.ktor.http.HttpStatusCode
 import model.AppointmentRequest
 import model.AppointmentResponse
+import model.Appointment
+import model.Audiologist
+import model.AppointmentType
 
 class AppointmentService(private val appointmentRepository: AppointmentRepository = AppointmentRepository()) {
     
@@ -23,5 +26,17 @@ class AppointmentService(private val appointmentRepository: AppointmentRepositor
     
     fun bookAppointment(appointmentRequest: AppointmentRequest): AppointmentResponse {
         return appointmentRepository.bookAppointment(appointmentRequest)
+    }
+    
+    fun getUserAppointments(userId: String): List<Appointment> {
+        return appointmentRepository.getUserAppointments(userId)
+    }
+    
+    fun getAudiologistAppointments(audiologistId: String): List<Appointment> {
+        return appointmentRepository.getAudiologistAppointments(audiologistId)
+    }
+    
+    fun findAvailableAudiologist(date: String, time: String, appointmentTypeId: String): Audiologist? {
+        return appointmentRepository.findAvailableAudiologist(date, time, appointmentTypeId)
     }
 }
