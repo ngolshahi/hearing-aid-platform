@@ -74,6 +74,9 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .appointment-type:hover {
@@ -181,13 +184,21 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+  .book-page {
+    padding: 60px 0 0;
+  }
+  
   .booking-container {
     padding: 1.5rem;
+    border-radius: 0;
+    box-shadow: none;
+    margin-top: 0;
+    min-height: calc(100vh - 60px);
   }
 
   .date-time-selection,
   .personal-details {
-    padding: 0 0.75rem;
+    padding: 0;
     gap: 1rem;
   }
 
@@ -198,49 +209,107 @@
   .form-group input,
   .form-group select,
   .form-group textarea {
-    padding: 0.7rem;
+    height: 46px;
+    padding: 0.65rem 0.9rem;
     font-size: 1rem;
-    height: 45px;
   }
-
+  
   .form-group textarea {
     height: 100px;
     min-height: 100px;
   }
 
   .booking-container h1 {
-    font-size: 1.75rem;
+    font-size: 1.8rem;
     margin-bottom: 1.5rem;
   }
 
   .progress-bar {
     margin-bottom: 2rem;
   }
+  
+  .progress-step {
+    width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
+  }
 
   .progress-line {
-    width: 40px;
+    width: 60px;
+    margin: 0 0.5rem;
   }
 
   .appointment-types {
     grid-template-columns: 1fr;
     gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .appointment-type {
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    border-radius: 10px;
+    height: auto;
+  }
+  
+  .appointment-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0;
+    margin-right: 1rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+  }
+  
+  .appointment-type-content {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+  }
+  
+  .appointment-type h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+  
+  .appointment-type p {
+    font-size: 0.9rem;
+    white-space: normal;
+    word-wrap: break-word;
   }
 
   .audiologist-card {
     flex-direction: column;
-    align-items: center;
+    padding: 1.2rem;
     text-align: center;
-    padding: 1rem;
-    gap: 1rem;
   }
 
   .audiologist-image {
-    width: 120px;
-    height: 120px;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
   }
 
   .audiologist-info h3 {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .appointment-summary {
+    padding: 1.2rem;
+    margin-top: 1.5rem;
+    border-radius: 10px;
+  }
+  
+  .appointment-summary h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
   }
 
   .button-group {
@@ -253,25 +322,75 @@
   .next-button,
   .submit-button {
     width: 100%;
-    padding: 0.875rem;
+    padding: 0.85rem 1rem;
     font-size: 1rem;
+    border-radius: 8px;
+  }
+  
+  .booking-step h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .time-slot-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 12px;
+  }
+  
+  .refresh-slots-button {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    align-self: center;
+    margin-top: 0;
+    white-space: nowrap;
   }
 }
 
-/* Small screens */
+/* Small Mobile Devices */
 @media (max-width: 380px) {
   .booking-container h1 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
 
   .progress-step {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.85rem;
   }
 
   .progress-line {
-    width: 30px;
+    width: 40px;
+    height: 2px;
+  }
+  
+  .appointment-icon {
+    font-size: 1.5rem;
+    min-width: 30px;
+  }
+  
+  .booking-step h2 {
+    font-size: 1.3rem;
+  }
+  
+  .form-group label {
+    font-size: 1rem;
+  }
+
+  .appointment-type {
+    padding: 1rem;
+  }
+  
+  .appointment-type h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+  
+  .appointment-type p {
+    font-size: 0.85rem;
+    line-height: 1.3;
   }
 }
 
@@ -500,4 +619,62 @@
   border-bottom: 1px solid #ddd;
   padding-bottom: 10px;
   margin-bottom: 15px;
+}
+
+.time-slot-group {
+  position: relative;
+}
+
+.time-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.refresh-slots-button {
+  background-color: transparent;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-slots-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #bbb;
+}
+
+.refresh-slots-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.no-slots-message {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+.helper-text {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 12px 15px;
+  border-radius: 5px;
+  color: #721c24;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
 }
