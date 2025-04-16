@@ -616,3 +616,35 @@
   background: #2a4365;
   transform: translateY(-2px);
 }
+
+/* Active Category Filter */
+.active-category-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ebf4ff;
+  color: #2c5282;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.clear-filter {
+  background: none;
+  border: none;
+  color: #4a5568;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.clear-filter:hover {
+  color: #1a202c;
+  background-color: rgba(0, 0, 0, 0.05);
+}
