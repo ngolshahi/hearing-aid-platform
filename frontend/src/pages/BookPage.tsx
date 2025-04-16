@@ -7,7 +7,8 @@ import {
   getAvailableTimeSlots, 
   bookAppointment, 
   AppointmentRequest,
-  AppointmentResponse
+  AppointmentResponse,
+  getAvailableAudiologist
 } from '../services/appointmentService';
 import {Audiologist,getAudiologistById} from '../services/audiologistService';
 
@@ -117,6 +118,8 @@ const BookPage: React.FC = () => {
     setSelectedDate(e.target.value);
     // Reset selected time when date changes
     setSelectedTime('');
+    // Reset error message when date changes
+    setErrorMessage('');
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +147,7 @@ const BookPage: React.FC = () => {
         appointmentTypeId,
         date: selectedDate,
         time: selectedTime,
-        userId: currentUser?.userId || undefined,
+        userId: currentUser?.id || undefined,
         notes,
         userDetails: {
           firstName: formData.firstName,
@@ -200,59 +203,50 @@ const BookPage: React.FC = () => {
   const handleNextStep = async (nextStep: number) => {
     if (nextStep === 2) {
       setIsLoading(true);
-      // This would typically be a real API call to get the audiologist
-      // assigned for this appointment slot
-      // For now, we'll use a mock as there's no endpoint in the provided code
-      setTimeout(async () => {
-        try {
-          const mockAudiologistId = "1"; // In a real app, this would come from the backend
-          const fetchedAudiologist = await getAudiologistById(mockAudiologistId);
-          if (fetchedAudiologist) {
-            setAudiologist(fetchedAudiologist);
-          } else {
-            // Fallback to mock data if API fails
-            setAudiologist({
-              id: "1",
-              name: "Dr. Sarah Thompson",
-              image: "/images/audiologist.png",
-              description: "Dr. Thompson has over 15 years of experience in audiology, specializing in hearing aid fitting and rehabilitation.",
-              qualifications: "BSc Audiology, PhD Hearing Sciences",
-              workSchedule: {
-                "monday": {
-                    "start": "09:00",
-                    "end": "18:00"
-                },
-                "tuesday": {
-                    "start": "09:00",
-                    "end": "18:00"
-                },
-                "wednesday": {
-                    "start": "09:00",
-                    "end": "18:00"
-                },
-                "thursday": {
-                    "start": "09:00",
-                    "end": "18:00"
-                },
-                "friday": {
-                    "start": "09:00",
-                    "end": "18:00"
-                }
-              },  
-              email: "sarah.thompson@auralise.com",
-              phone: "07700 900123"
-            });
-          }
-          setIsLoading(false);
+      setErrorMessage('');
+      
+      try {
+        // Fetch an available audiologist for the selected date, time, and appointment type
+        const fetchedAudiologist = await getAvailableAudiologist(
+          selectedDate, 
+          selectedTime, 
+          appointmentTypeId
+        );
+        
+        if (fetchedAudiologist) {
+          setAudiologist(fetchedAudiologist);
           setStep(nextStep);
-        } catch (error) {
-          console.error('Error fetching audiologist:', error);
-          setErrorMessage('Failed to fetch audiologist information.');
-          setIsLoading(false);
+        } else {
+          setErrorMessage('No audiologist is available for the selected time slot. Please select another time.');
         }
-      }, 1000);
+      } catch (error) {
+        console.error('Error fetching available audiologist:', error);
+        setErrorMessage('Failed to find an available audiologist. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setStep(nextStep);
+    }
+  };
+
+  // Add a refresh function to re-fetch available slots
+  const refreshAvailableSlots = async () => {
+    if (selectedDate && appointmentTypeId) {
+      setIsLoading(true);
+      setErrorMessage('');
+      try {
+        const slots = await getAvailableTimeSlots(selectedDate, appointmentTypeId);
+        setAvailableTimeSlots(slots);
+        if (slots.length === 0) {
+          setErrorMessage('No available time slots for the selected date. Please try another date.');
+        }
+      } catch (error) {
+        setErrorMessage('Failed to fetch available time slots. Please try again.');
+        console.error('Error fetching time slots:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -293,8 +287,10 @@ const BookPage: React.FC = () => {
                     onClick={() => handleAppointmentTypeSelect(apt.type, apt.id)}
                   >
                     <span className="appointment-icon">{apt.icon}</span>
-                    <h3>{apt.type}</h3>
-                    <p>Duration: {apt.duration}</p>
+                    <div className="appointment-type-content">
+                      <h3>{apt.type}</h3>
+                      <p>Duration: {apt.duration}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -325,14 +321,27 @@ const BookPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="time">Preferred Time</label>
+                <div className="form-group time-slot-group">
+                  <div className="time-slot-header">
+                    <label htmlFor="time">Preferred Time</label>
+                    {selectedDate && (
+                      <button 
+                        type="button" 
+                        className="refresh-slots-button"
+                        onClick={refreshAvailableSlots}
+                        disabled={isLoading || !selectedDate}
+                      >
+                        {isLoading ? 'Loading...' : 'Refresh Slots'}
+                      </button>
+                    )}
+                  </div>
+                  
                   <select
                     id="time"
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
                     required
-                    disabled={availableTimeSlots.length === 0 || !selectedDate}
+                    disabled={availableTimeSlots.length === 0 || !selectedDate || isLoading}
                   >
                     <option value="">Select a time</option>
                     {availableTimeSlots.map((time) => (
@@ -341,8 +350,15 @@ const BookPage: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  
                   {selectedDate && availableTimeSlots.length === 0 && !isLoading && (
-                    <p className="no-slots-message">No available slots for this date. Please try another date.</p>
+                    <div className="no-slots-message">
+                      <p>No available slots for this date. Please try another date or check back later.</p>
+                    </div>
+                  )}
+                  
+                  {!selectedDate && (
+                    <p className="helper-text">Please select a date first</p>
                   )}
                 </div>
 
