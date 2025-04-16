@@ -1,0 +1,325 @@
+.booking-confirmation-page {
+  padding: 72px 0 2rem;
+  min-height: 100vh;
+  background-color: #f7fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.booking-confirmation-container {
+  max-width: 700px;
+  width: 90%;
+  margin: 0 auto;
+  padding: 2.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.confirmation-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.check-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2c5282, #2a4365);
+  color: white;
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 8px 16px rgba(44, 82, 130, 0.2);
+}
+
+.confirmation-header h1 {
+  font-size: 2.2rem;
+  color: #1a202c;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.confirmation-header p {
+  font-size: 1.1rem;
+  color: #4a5568;
+}
+
+.confirmation-details {
+  background: #f8fafc;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.confirmation-details h2 {
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.75rem;
+}
+
+.confirmation-details h3 {
+  color: #1a202c;
+  margin: 1.5rem 0 1rem;
+  font-size: 1.3rem;
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.detail-label {
+  width: 40%;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.detail-value {
+  width: 60%;
+  color: #1a202c;
+}
+
+.audiologist-card {
+  display: flex;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  gap: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.audiologist-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.audiologist-info h4 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+  color: #1a202c;
+}
+
+.audiologist-info .qualifications {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.audiologist-info .email {
+  font-size: 0.9rem;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.confirmation-message {
+  color: #4a5568;
+  margin-bottom: 2rem;
+  border-left: 3px solid #2c5282;
+  padding-left: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.confirmation-message p {
+  margin-bottom: 0.75rem;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.primary-button, 
+.secondary-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primary-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(44, 82, 130, 0.15);
+}
+
+.primary-button:hover {
+  background: #2a4365;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(44, 82, 130, 0.2);
+}
+
+.secondary-button {
+  background: transparent;
+  border: 2px solid #2c5282;
+  color: #2c5282;
+}
+
+.secondary-button:hover {
+  background: rgba(44, 82, 130, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .booking-confirmation-page {
+    padding: 0;
+    padding-top: 60px;
+    align-items: flex-start;
+  }
+  
+  .booking-confirmation-container {
+    padding: 1.5rem;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    margin-top: 0;
+    min-height: calc(100vh - 60px);
+  }
+
+  .confirmation-header {
+    margin-bottom: 1.5rem;
+    padding-top: 1rem;
+  }
+
+  .check-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .confirmation-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .confirmation-header p {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+
+  .confirmation-details {
+    padding: 1.25rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: 8px;
+  }
+  
+  .confirmation-details h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .confirmation-details h3 {
+    font-size: 1.2rem;
+    margin: 1.25rem 0 0.75rem;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .detail-label, .detail-value {
+    width: 100%;
+  }
+
+  .detail-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: #4a5568;
+  }
+  
+  .detail-value {
+    margin-top: 0.25rem;
+    font-size: 1.05rem;
+  }
+
+  .audiologist-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem 0.75rem;
+  }
+  
+  .audiologist-image {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .audiologist-info h4 {
+    font-size: 1.1rem;
+  }
+  
+  .confirmation-message {
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .confirmation-actions {
+    flex-direction: column;
+    padding: 0 0.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .primary-button, .secondary-button {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .primary-button,
+  .secondary-button {
+    transition: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .primary-button {
+    background: #000;
+  }
+
+  .primary-button:hover {
+    background: #333;
+  }
+
+  .secondary-button {
+    border: 2px solid #000;
+    color: #000;
+  }
+
+  .check-icon {
+    background: #000;
+  }
+} 
