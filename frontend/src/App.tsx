@@ -13,6 +13,7 @@ import TryOnARPage from "./pages/TryOnARPage";
 import ScrollToTop from './components/ScrollToTop';
 import HearingTestPage from "./pages/HearingTestPage";
 import ProfilePage from "./pages/ProfilePage";
+import BookingConfirmationPage from "./pages/BookingConfirmationPage";
 
 const App: React.FC = () => {
   return (
@@ -32,6 +33,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage/>}/>
+          <Route path="/booking-confirmation" element={<BookingConfirmationPage/>}/>
         </Routes>
         <Footer />
       </div>
