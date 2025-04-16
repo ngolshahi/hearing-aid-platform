@@ -24,4 +24,8 @@ class AuthService(private val userRepository: UserRepository = UserRepository())
     fun authenticateUser(email: String, password: String): User? {
         return userRepository.verifyPassword(email, password)
     }
+    
+    fun updateUser(user: User): User? {
+        return userRepository.updateUser(user)
+    }
 }
