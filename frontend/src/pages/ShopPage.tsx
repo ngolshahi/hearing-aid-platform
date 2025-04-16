@@ -1,11 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/ShopPage.css';
 import Quiz from './Quiz';
 import { getHearingAids, HearingAid } from '../services/hearingAidService';
 
+// Define a mapping for our category slugs to hearing aid types displayed in UI
+const categoryToTypeMap: Record<string, string> = {
+  'ric': 'RIC (Receiver-in-Canal)',
+  'itc': 'ITC (In-the-Canal)',
+  'iic': 'IIC (Invisible-in-Canal)',
+  'bte': 'BTE (Behind-the-Ear)'
+};
+
+// Define a more direct mapping from category slug to exact type strings
+const categoryToExactTypes: Record<string, string[]> = {
+  'ric': ['Mini Receiver-In-Canal (mRIC)', 'Receiver-In-Canal (RIC)'],
+  'itc': ['In-The-Canal (ITC)'],
+  'iic': ['Invisible-In-Canal (IIC)'],
+  'bte': ['Behind-the-Ear (BTE)']
+};
+
+// This function gets matching types from available hearingAidTypes based on a category
+const getMatchingHearingAidTypes = (category: string, availableTypes: string[]): string[] => {
+  console.log('Finding matches for category:', category);
+  console.log('Available types:', availableTypes);
+  
+  // Use our direct mapping
+  if (categoryToExactTypes[category]) {
+    // Get the exact type strings for this category
+    const exactTypeStrings = categoryToExactTypes[category];
+    console.log('Looking for exact types:', exactTypeStrings);
+    
+    // Filter available types to only include those that are in our exact list
+    const result = availableTypes.filter(availableType => 
+      exactTypeStrings.includes(availableType)
+    );
+    
+    console.log('Matched types by exact mapping:', result);
+    return result;
+  }
+  
+  // Fallback to generic string matching if needed
+  const fallbackResult = availableTypes.filter(type => 
+    type.toLowerCase().includes(category.toLowerCase())
+  );
+  
+  console.log('Matched types by fallback:', fallbackResult);
+  return fallbackResult;
+};
+
 const ShopPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -13,7 +59,9 @@ const ShopPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('featured');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
-  const [showAllColors, setShowAllColors] = useState(false);
+  const [showAllColors, setShowAllColors] = useState(true); // Set to true by default
+  // Add a special type filter that works regardless of available types
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   
   // State for hearing aids data and loading status
   const [hearingAids, setHearingAids] = useState<HearingAid[]>([]);
@@ -24,6 +72,61 @@ const ShopPage: React.FC = () => {
   const [hearingAidTypes, setHearingAidTypes] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [colors, setColors] = useState<string[]>([]);
+  
+  // Use a ref to track if we've already processed a selected type
+  const processedSelectedType = React.useRef<string | null>(null);
+  // Track initial data loading
+  const initialDataLoaded = React.useRef(false);
+  // Track whether we've set filters from navigation
+  const filtersSetFromNavigation = React.useRef(false);
+
+  // Check for filter parameters from navigation
+  useEffect(() => {
+    const state = location.state as { selectedType?: string; filterCategory?: string } | null;
+    
+    if (state && state.selectedType && hearingAidTypes.length > 0 && 
+        processedSelectedType.current !== state.selectedType) {
+      
+      console.log('Selecting types matching category:', state.selectedType);
+      processedSelectedType.current = state.selectedType;
+      filtersSetFromNavigation.current = true;
+      
+      // Use our helper function to get matching types
+      const matchingTypes = getMatchingHearingAidTypes(state.selectedType, hearingAidTypes);
+      
+      console.log('Matching types:', matchingTypes);
+      
+      if (matchingTypes.length > 0) {
+        // Clear any previous selected types and set only the matching types
+        setSelectedTypes(matchingTypes);
+      } else {
+        // If no matches found, try to find types containing the category name
+        console.log('No direct matches found, trying fallback method...');
+        const fallbackMatches = hearingAidTypes.filter(type => 
+          type.toLowerCase().includes(state.selectedType!.toLowerCase())
+        );
+        
+        if (fallbackMatches.length > 0) {
+          console.log('Fallback matches found:', fallbackMatches);
+          setSelectedTypes(fallbackMatches);
+        } else {
+          console.log('No matches found at all, keeping all types selected');
+        }
+      }
+      
+      // Clear the location state to prevent filter being applied on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    else if (state && state.filterCategory) {
+      // For backward compatibility
+      console.log('Filtering by category:', state.filterCategory);
+      setCategoryFilter(state.filterCategory);
+      filtersSetFromNavigation.current = true;
+      
+      // Clear the location state to prevent filter being applied on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate, hearingAidTypes]);
 
   // Fetch hearing aids from the API
   useEffect(() => {
@@ -38,9 +141,26 @@ const ShopPage: React.FC = () => {
         const brandsList = [...new Set(data.map(aid => aid.brand))];
         const colorsList = [...new Set(data.flatMap(aid => aid.colors))];
         
+        console.log('Available hearing aid types:', types);
+        
+        // Debug: Log each aid with its type
+        console.log('All hearing aids with types:');
+        data.forEach(aid => {
+          console.log(`${aid.name}: "${aid.type}"`);
+        });
+        
         setHearingAidTypes(types);
         setBrands(brandsList);
         setColors(colorsList);
+        
+        // ONLY set all filters on first load AND if we haven't set filters from navigation
+        if (!initialDataLoaded.current && !filtersSetFromNavigation.current) {
+          console.log('First load - setting all types as selected');
+          setSelectedTypes(types);
+          setSelectedBrands(brandsList);
+        }
+        
+        initialDataLoaded.current = true;
         
         setError(null);
       } catch (err) {
@@ -52,7 +172,18 @@ const ShopPage: React.FC = () => {
     };
 
     fetchHearingAids();
-  }, []);
+  }, [categoryFilter]);
+
+  // Apply filtering when the category filter changes
+  useEffect(() => {
+    if (categoryFilter) {
+      // Clear all filters when a category filter is applied
+      setSelectedTypes([]);
+      setSelectedBrands([]);
+      setSelectedColors([]);
+      setShowAllColors(true);
+    }
+  }, [categoryFilter]);
 
   useEffect(() => {
     // Clean up the body overflow style when component unmounts
@@ -62,6 +193,11 @@ const ShopPage: React.FC = () => {
   }, []);
 
   const handleTypeChange = (type: string) => {
+    // Clear the category filter when user manually changes type selection
+    setCategoryFilter(null);
+    // Mark that we've manually set filters
+    filtersSetFromNavigation.current = true;
+    
     setSelectedTypes(prev => 
       prev.includes(type) 
         ? prev.filter(t => t !== type)
@@ -70,6 +206,9 @@ const ShopPage: React.FC = () => {
   };
 
   const handleBrandChange = (brand: string) => {
+    // Mark that we've manually set filters
+    filtersSetFromNavigation.current = true;
+    
     setSelectedBrands(prev =>
       prev.includes(brand)
         ? prev.filter(b => b !== brand)
@@ -79,6 +218,9 @@ const ShopPage: React.FC = () => {
 
   const handleColorChange = (color: string) => {
     if (showAllColors) return; // Don't change colors if "No Preference" is selected
+    
+    // Mark that we've manually set filters
+    filtersSetFromNavigation.current = true;
     
     setSelectedColors(prev => {
       if (prev.includes(color)) {
@@ -90,6 +232,9 @@ const ShopPage: React.FC = () => {
   };
 
   const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Mark that we've manually set filters
+    filtersSetFromNavigation.current = true;
+    
     const value = parseInt(event.target.value);
     const isMin = event.target.id === 'min-price';
     setPriceRange(prev => isMin ? [value, prev[1]] : [prev[0], value]);
@@ -123,36 +268,65 @@ const ShopPage: React.FC = () => {
     // Update colors
     if (results.colors && results.colors.length > 0) {
       setSelectedColors(results.colors);
+      setShowAllColors(false);
     }
     
     // Update price range
     if (results.priceRange) {
       setPriceRange(results.priceRange);
     }
+    
+    // Clear category filter if quiz is completed
+    setCategoryFilter(null);
   };
 
   const resetFilters = () => {
-    setSelectedTypes([]);
-    setSelectedBrands([]);
+    // Mark that we've manually set filters
+    filtersSetFromNavigation.current = true;
+    
+    // When resetting, select all filters
+    setSelectedTypes(hearingAidTypes);
+    setSelectedBrands(brands);
     setSelectedColors([]);
-    setShowAllColors(false);
+    setShowAllColors(true);
     setPriceRange([0, 5000]);
     setSortBy('featured');
+    setCategoryFilter(null);
   };
 
   const getFilteredHearingAids = () => {
+    if (selectedTypes.length > 0) {
+      console.log('Filtering by types:', selectedTypes);
+    }
+    
+    if (categoryFilter) {
+      console.log('Using category filter:', categoryFilter);
+    }
+    
     return hearingAids.filter(aid => {
-      // Filter by type
+      // Filter by custom category if set (takes precedence)
+      if (categoryFilter) {
+        // Get all hearing aid types that match this category
+        const matchingTypes = getMatchingHearingAidTypes(categoryFilter, hearingAidTypes);
+        // Check if the current aid's type is in the matching types
+        if (matchingTypes.length > 0) {
+          return matchingTypes.includes(aid.type);
+        }
+        // Fallback to simple string matching if no matches found
+        return aid.type.toLowerCase().includes(categoryFilter.toLowerCase());
+      }
+      
+      // Filter by selected types (if none are selected, show all)
       if (selectedTypes.length > 0 && !selectedTypes.includes(aid.type)) {
         return false;
       }
 
-      // Filter by brand
+      // Filter by brand (if none are selected, show all)
       if (selectedBrands.length > 0 && !selectedBrands.includes(aid.brand)) {
         return false;
       }
 
-      // Filter by color
+      // Filter by color (if showAllColors is true, show all)
       if (selectedColors.length > 0 && !showAllColors) {
         // Check if the hearing aid has ANY of the selected colors
         const hasMatchingColor = selectedColors.some(selectedColor => 
@@ -228,14 +402,35 @@ const ShopPage: React.FC = () => {
               Reset All Filters
             </button>
 
+            {/* Show active category filter if present */}
+            {categoryFilter && (
+              <div className="filter-section">
+                <h3>Active Filter</h3>
+                <div className="active-category-filter">
+                  <span>Category: {categoryToTypeMap[categoryFilter] || categoryFilter}</span>
+                  <button 
+                    className="clear-filter"
+                    onClick={() => setCategoryFilter(null)}
+                    aria-label="Clear category filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="filter-section">
               <h3>Type</h3>
               {hearingAidTypes.map(type => (
-                <label key={type} className="filter-option">
+                <label 
+                  key={type} 
+                  className={`filter-option ${categoryFilter ? 'disabled' : ''}`}
+                >
                   <input
                     type="checkbox"
                     checked={selectedTypes.includes(type)}
                     onChange={() => handleTypeChange(type)}
+                    disabled={!!categoryFilter}
                   />
                   {type}
                 </label>
