@@ -42,6 +42,31 @@ class UserRepository {
         }
     }
 
+    fun updateUser(user: User): User? {
+        try {
+            // First check if the user exists
+            val existingUser = readUser(user.email) ?: return null
+            
+            // Update the user in the database
+            val response = container.replaceItem(
+                user,
+                user.email, // Use email as the ID since that's what we use for readUser
+                PartitionKey(user.email),
+                null
+            )
+            
+            return if (response.statusCode == 200) {
+                user
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            println("Error updating user with ID: ${user.id}")
+            e.printStackTrace()
+            return null
+        }
+    }
+
     fun verifyPassword(email: String, password: String): User? {
         val user = readUser(email) ?: return null
         // In a real app, compare hashed passwords
