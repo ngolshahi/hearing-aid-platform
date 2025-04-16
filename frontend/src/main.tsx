@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import './styles/global.css'
 
 // Importing Workbox for service worker registration
 if ('serviceWorker' in navigator) {
