@@ -14,7 +14,7 @@ Here's a list of features included in this project:
 
 | Name                                               | Description                                                 |
 | ----------------------------------------------------|------------------------------------------------------------- |
-| [Routing](https://start.ktor.io/p/routing-default) | Allows to define structured routes and associated handlers. |
+| [Routing](https://start.ktor.io/p/routing-default) | Allows you to define structured routes and associated handlers. |
 
 ## Building & Running
 
