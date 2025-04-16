@@ -46,25 +46,29 @@ const HomePage: React.FC = () => {
       type: 'RIC (Receiver-in-Canal)',
       description: 'Discreet and powerful, perfect for most hearing losses',
       price: 'From £999',
-      image: '/images/ric-hearing-aid.png'
+      image: '/images/ric-hearing-aid.png',
+      category: 'ric'
     },
     {
       type: 'ITC (In-the-Canal)',
       description: 'Custom-made to fit in your ear canal',
       price: 'From £1,199',
-      image: '/images/itc-hearing-aid.png'
+      image: '/images/itc-hearing-aid.png',
+      category: 'itc'
     },
     {
       type: 'IIC (Invisible-in-Canal)',
       description: 'Nearly invisible when worn',
       price: 'From £1,499',
-      image: '/images/iic-hearing-aid.png'
+      image: '/images/iic-hearing-aid.png',
+      category: 'iic'
     },
     {
       type: 'BTE (Behind-the-Ear)',
       description: 'Powerful and easy to handle',
       price: 'From £899',
-      image: '/images/bte-hearing-aid.png'
+      image: '/images/bte-hearing-aid.png',
+      category: 'bte'
     }
   ];
 
@@ -101,6 +105,11 @@ const HomePage: React.FC = () => {
 
   const handleBookNow = (serviceId: string) => {
     navigate('/book', { state: { selectedService: serviceId } });
+  };
+
+  const handleLearnMore = (category: string) => {
+    console.log('Navigating to shop with selected type:', category);
+    navigate('/shop', { state: { selectedType: category } });
   };
 
   return (
@@ -237,7 +246,7 @@ const HomePage: React.FC = () => {
                 <div className="product-price">{aid.price}</div>
                 <button
                   className="secondary-button"
-                  onClick={() => navigate("/products")}
+                  onClick={() => handleLearnMore(aid.category)}
                 >
                   Learn More
                 </button>
