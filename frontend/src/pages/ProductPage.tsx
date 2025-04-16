@@ -16,6 +16,10 @@ interface HearingAid extends BasicHearingAid {
   images?: string[];
   features?: Feature[];
   specifications?: Record<string, string>;
+  visualiserConfig?: {
+    modelType: string;
+    brandLine?: string;
+  };
 }
 
 interface Review {
@@ -89,7 +93,7 @@ const ProductPage: React.FC = () => {
         const hearingAidData = await getHearingAidById(id);
         
         // Check if this model supports the 3D visualiser
-        const supports3DVisualiser = id === '2'; // Edge AI 24 mRIC
+        const supports3DVisualiser = id === '2' || id === '3' || id === '4'; // Edge AI 24 mRIC or other visualizer-supported models
         setVisualiserSupported(supports3DVisualiser);
         
         // Transform basic hearing aid data to extended format with default values
@@ -126,6 +130,11 @@ const ProductPage: React.FC = () => {
             'Warranty': '3 Years',
             'Water Resistance': 'IP68',
             'Weight': '2.8g'
+          },
+          // Add visualiser configuration based on product ID or type
+          visualiserConfig: hearingAidData.visualiserConfig || {
+            modelType: id === '2' ? 'mric-r' : id === '3' ? 'ric-rt' : id === '4' ? 'itc-r' : 'mric-r',
+            brandLine: 'genesis-ai'
           }
         };
         
@@ -181,6 +190,8 @@ const ProductPage: React.FC = () => {
             <HearingAidVisualiser 
               productId={product.id}
               selectedColor={selectedColor}
+              modelType={product.visualiserConfig?.modelType}
+              brandLine={product.visualiserConfig?.brandLine}
               onVisualiserClose={() => setShowVisualiser(false)}
             />
           ) : (
