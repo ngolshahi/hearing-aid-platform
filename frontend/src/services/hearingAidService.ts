@@ -31,6 +31,10 @@ export interface HearingAid {
   _etag?: string;
   _attachments?: string;
   _ts?: number;
+  visualiserConfig?: {
+    modelType: string;
+    brandLine?: string;
+  };
 }
 
 // Get all hearing aids
@@ -54,3 +58,30 @@ export const getHearingAidById = async (id: string): Promise<HearingAid> => {
     throw error;
   }
 };
+
+/*
+When adding or updating hearing aids in your database, include visualiserConfig for models
+that support 3D visualization. Examples:
+
+For an mRIC model:
+{
+  "id": "2",
+  "name": "Edge AI 24 mRIC",
+  ...
+  "visualiserConfig": {
+    "modelType": "mric-r",
+    "brandLine": "genesis-ai"
+  }
+}
+
+For a RIC-RT model:
+{
+  "id": "3",
+  "name": "Genesis AI RIC-RT",
+  ...
+  "visualiserConfig": {
+    "modelType": "ric-rt",
+    "brandLine": "genesis-ai"
+  }
+}
+*/
