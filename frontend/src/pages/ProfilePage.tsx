@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   updateUserProfile, 
   updateAudiologistProfile, 
   getCurrentUser, 
   Audiologist,
   User,
-  logout 
+  logout,
+  WorkHours
 } from '../services/authService';
+import { 
+  getUserAppointments, 
+  getAudiologistAppointments, 
+  Appointment 
+} from '../services/appointmentService';
 import '../styles/ProfilePage.css';
+
+// Days of the week for work schedule
+const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const ProfilePage: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -21,22 +30,146 @@ const ProfilePage: React.FC = () => {
     email: currentUser?.email || '',
     description: (currentUser as Audiologist)?.description || '',
     qualifications: (currentUser as Audiologist)?.qualifications || '',
-    image: (currentUser as Audiologist)?.image || '',
-    workSchedule: (currentUser as Audiologist)?.workSchedule || '',
+    image: (currentUser as Audiologist)?.image || currentUser?.image || '',
+    workSchedule: (currentUser as Audiologist)?.workSchedule || {},
     password: currentUser?.password || '',
   });
+  
+  // State for file upload
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    currentUser?.image || (currentUser as Audiologist)?.image || null
+  );
   
   // State for delete account confirmation
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
+  // State for appointments
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+  const [fetchedAppointments, setFetchedAppointments] = useState(false);
+
   // Determine if the current user is an audiologist
   const isAudiologist = currentUser && 'qualifications' in currentUser;
+
+  // Fetch user appointments
+  useEffect(() => {
+    if (currentUser && activeTab === 'appointments' && !fetchedAppointments && !isLoadingAppointments) {
+      fetchAppointments();
+    }
+  }, [currentUser, activeTab, fetchedAppointments, isLoadingAppointments]);
+
+  const fetchAppointments = async () => {
+    if (!currentUser) return;
+    
+    setIsLoadingAppointments(true);
+    try {
+      let userAppointments: Appointment[] = [];
+      
+      if (isAudiologist) {
+        // Fetch appointments where audiologistId matches the current user's ID
+        console.log(`Fetching appointments for audiologist ID: ${currentUser.id}`);
+        userAppointments = await getAudiologistAppointments(currentUser.id);
+      } else {
+        // Fetch appointments where userId matches the current user's ID
+        console.log(`Fetching appointments for user ID: ${currentUser.id}`);
+        userAppointments = await getUserAppointments(currentUser.id);
+      }
+      
+      setAppointments(userAppointments);
+      setFetchedAppointments(true);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    } finally {
+      setIsLoadingAppointments(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedImage(file);
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Format work schedule for display
+  const formatWorkSchedule = (schedule: Record<string, WorkHours>): string => {
+    if (!schedule || Object.keys(schedule).length === 0) {
+      return 'No schedule set';
+    }
+
+    return DAYS_OF_WEEK
+      .filter(day => schedule[day])
+      .map(day => {
+        const { start, end } = schedule[day];
+        return `${day.charAt(0).toUpperCase() + day.slice(1)}: ${start} - ${end}`;
+      })
+      .join('\n');
+  };
+
+  // Update work schedule hours for a specific day
+  const handleWorkScheduleChange = (day: string, field: 'start' | 'end', value: string) => {
+    setEditedProfile(prev => {
+      const newWorkSchedule = { ...prev.workSchedule };
+      
+      if (!newWorkSchedule[day]) {
+        newWorkSchedule[day] = { start: '09:00', end: '17:00' };
+      }
+      
+      newWorkSchedule[day] = {
+        ...newWorkSchedule[day],
+        [field]: value
+      };
+      
+      return {
+        ...prev,
+        workSchedule: newWorkSchedule
+      };
+    });
+  };
+
+  // Toggle if a day is included in the work schedule
+  const toggleWorkDay = (day: string, isActive: boolean) => {
+    setEditedProfile(prev => {
+      const newWorkSchedule = { ...prev.workSchedule };
+      
+      if (isActive) {
+        if (!newWorkSchedule[day]) {
+          newWorkSchedule[day] = { start: '09:00', end: '17:00' };
+        }
+      } else {
+        delete newWorkSchedule[day];
+      }
+      
+      return {
+        ...prev,
+        workSchedule: newWorkSchedule
+      };
+    });
+  };
 
   const handleEditProfile = async () => {
     if (isEditing) {
       try {
         let updated;
+        let imageUrl = editedProfile.image;
+        
+        // Handle image upload if a new image was selected
+        if (selectedImage) {
+          // In a real app, you would upload the image to your server or a service like AWS S3
+          // and get back a URL to store in the user profile
+          // For this example, we'll simulate it with a local data URL
+          imageUrl = imagePreview as string;
+          console.log('Image would be uploaded to server and URL stored');
+        }
         
         // Different update logic for audiologists and regular users
         if (isAudiologist) {       
@@ -48,7 +181,7 @@ const ProfilePage: React.FC = () => {
             email: editedProfile.email,
             description: editedProfile.description,
             qualifications: editedProfile.qualifications,
-            image: editedProfile.image,
+            image: imageUrl,
             workSchedule: editedProfile.workSchedule,
             password: editedProfile.password,
           }
@@ -60,7 +193,8 @@ const ProfilePage: React.FC = () => {
               email: editedProfile.email,
               password: editedProfile.password,
               name: editedProfile.name,
-              phone: editedProfile.phone
+              phone: editedProfile.phone,
+              image: imageUrl
             }
             updated = await updateUserProfile(updatedUser);
           } else {
@@ -112,6 +246,29 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Format date to more human-readable format
+  const formatDate = (dateStr: string) => {
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateStr).toLocaleDateString('en-US', options);
+  };
+
+  // Get appointment status class
+  const getStatusClass = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'booked':
+      case 'confirmed':
+        return 'confirmed';
+      case 'pending':
+        return 'pending';
+      case 'cancelled':
+        return 'cancelled';
+      case 'completed':
+        return 'completed';
+      default:
+        return '';
+    }
+  };
+
   if (!currentUser) {
     return (
       <div className="profile-page">
@@ -128,7 +285,9 @@ const ProfilePage: React.FC = () => {
         <div className="profile-header">
           <div className="profile-header-content">
             <div className="profile-avatar-large">
-              {currentUser.image ? (
+              {imagePreview ? (
+                <img src={imagePreview} alt="Profile" className="profile-image-large" />
+              ) : currentUser.image ? (
                 <img src={currentUser.image} alt="Profile" className="profile-image-large" />
               ) : (
                 <div className="profile-initials-large">
@@ -155,13 +314,7 @@ const ProfilePage: React.FC = () => {
               className={`tab-button ${activeTab === 'appointments' ? 'active' : ''}`}
               onClick={() => setActiveTab('appointments')}
             >
-              My Appointments
-            </button>
-            <button 
-              className={`tab-button ${activeTab === 'orders' ? 'active' : ''}`}
-              onClick={() => setActiveTab('orders')}
-            >
-              My Orders
+              {isAudiologist ? 'My Patients' : 'My Appointments'}
             </button>
           </div>
 
@@ -170,6 +323,47 @@ const ProfilePage: React.FC = () => {
               <div className="personal-info-section">
                 <div className="info-card">
                   <h2>Personal Information</h2>
+                  
+                  {/* Profile Image Upload */}
+                  <div className="form-group image-upload-group">
+                    <label>Profile Image</label>
+                    {isEditing ? (
+                      <div className="image-upload-container">
+                        <div className="profile-image-preview">
+                          {imagePreview ? (
+                            <img src={imagePreview} alt="Profile preview" />
+                          ) : (
+                            <div className="profile-initials">
+                              {editedProfile.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          id="profile-image"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="file-input"
+                        />
+                        <label htmlFor="profile-image" className="file-input-label">
+                          Choose New Image
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="profile-image-display">
+                        {currentUser.image || (currentUser as Audiologist)?.image ? (
+                          <img 
+                            src={currentUser.image || (currentUser as Audiologist)?.image || ''} 
+                            alt="Profile" 
+                            className="profile-image-medium" 
+                          />
+                        ) : (
+                          <div className="profile-no-image">No profile image set</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="form-group">
                     <label>Full Name</label>
                     {isEditing ? (
@@ -236,6 +430,54 @@ const ProfilePage: React.FC = () => {
                           />
                         )}
                       </div>
+                      <div className="form-group">
+                        <label>Work Schedule</label>
+                        {isEditing ? (
+                          <div className="work-schedule-editor">
+                            <p className="schedule-help-text">Set your working hours for each day:</p>
+                            {DAYS_OF_WEEK.map(day => {
+                              const isActive = !!editedProfile.workSchedule[day];
+                              return (
+                                <div key={day} className="schedule-day-row">
+                                  <div className="day-checkbox">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`work-${day}`}
+                                      checked={isActive}
+                                      onChange={(e) => toggleWorkDay(day, e.target.checked)}
+                                    />
+                                    <label htmlFor={`work-${day}`} className="day-name">
+                                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                                    </label>
+                                  </div>
+                                  
+                                  {isActive && (
+                                    <div className="time-inputs">
+                                      <input 
+                                        type="time" 
+                                        value={editedProfile.workSchedule[day]?.start || '09:00'}
+                                        onChange={(e) => handleWorkScheduleChange(day, 'start', e.target.value)}
+                                        className="time-input"
+                                      />
+                                      <span className="time-separator">to</span>
+                                      <input 
+                                        type="time" 
+                                        value={editedProfile.workSchedule[day]?.end || '17:00'}
+                                        onChange={(e) => handleWorkScheduleChange(day, 'end', e.target.value)}
+                                        className="time-input"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <pre className="work-schedule-display">
+                            {formatWorkSchedule((currentUser as Audiologist).workSchedule)}
+                          </pre>
+                        )}
+                      </div>
                     </>
                   )}
                   
@@ -295,66 +537,83 @@ const ProfilePage: React.FC = () => {
 
             {activeTab === 'appointments' && (
               <div className="appointments-section">
-                <h2>My Appointments</h2>
-                {/* Example appointment, replace with actual data */}
-                <div className="appointment-card">
-                  <div className="appointment-header">
-                    <div className="appointment-type">Hearing Test</div>
-                    <div className="appointment-status confirmed">Confirmed</div>
-                  </div>
-                  <div className="appointment-details">
-                    <div className="appointment-info">
-                      <i className="appointment-icon">📅</i>
-                      <span>Monday, April 5, 2025</span>
-                    </div>
-                    <div className="appointment-info">
-                      <i className="appointment-icon">🕒</i>
-                      <span>10:30 AM</span>
-                    </div>
-                    <div className="appointment-info">
-                      <i className="appointment-icon">👩‍⚕️</i>
-                      <span>Dr. Emily Johnson</span>
-                    </div>
-                  </div>
-                  <div className="appointment-actions">
-                    <button className="secondary-button">Reschedule</button>
-                    <button className="outlined-button">Cancel</button>
-                  </div>
+                <div className="section-header">
+                  <h2>{isAudiologist ? 'Patient Appointments' : 'My Appointments'}</h2>
+                  <button 
+                    className="refresh-button" 
+                    onClick={() => {
+                      setFetchedAppointments(false);
+                      // This will trigger the useEffect to fetch appointments again
+                    }}
+                    disabled={isLoadingAppointments}
+                  >
+                    {isLoadingAppointments ? 'Loading...' : 'Refresh'}
+                  </button>
                 </div>
-                <div className="no-appointments">
-                  <p>No more upcoming appointments.</p>
-                  <button className="primary-button">Book New Appointment</button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'orders' && (
-              <div className="orders-section">
-                <h2>My Orders</h2>
-                <div className="order-card">
-                  <div className="order-header">
-                    <div className="order-number">Order #AUR-2025-0342</div>
-                    <div className="order-status shipped">Shipped</div>
+                
+                {isLoadingAppointments ? (
+                  <div className="loading-appointments">Loading appointments...</div>
+                ) : !currentUser.id ? (
+                  // Handle the case where currentUser doesn't have an ID
+                  <div className="appointment-error">
+                    <p>Unable to fetch appointments. Your account may not be fully set up.</p>
+                    <button className="primary-button" onClick={() => window.location.reload()}>Retry</button>
                   </div>
-                  <div className="order-product">
-                    <div className="product-image-small">
-                      <div className="placeholder-image"></div>
+                ) : appointments.length > 0 ? (
+                  appointments.map(appointment => (
+                    <div className="appointment-card" key={appointment.id}>
+                      <div className="appointment-header">
+                        <div className="appointment-type">{appointment.appointmentType}</div>
+                        <div className={`appointment-status ${getStatusClass(appointment.status)}`}>
+                          {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                        </div>
+                      </div>
+                      <div className="appointment-details">
+                        <div className="appointment-info">
+                          <i className="appointment-icon">📅</i>
+                          <span>{formatDate(appointment.date)}</span>
+                        </div>
+                        <div className="appointment-info">
+                          <i className="appointment-icon">🕒</i>
+                          <span>{appointment.startTime} - {appointment.endTime}</span>
+                        </div>
+                        {isAudiologist && (
+                          <div className="appointment-info">
+                            <i className="appointment-icon">👤</i>
+                            <span>
+                              {appointment.userDetails ? 
+                                `${appointment.userDetails.firstName} ${appointment.userDetails.surname}` : 
+                                'Unknown patient'}
+                            </span>
+                          </div>
+                        )}
+                        {appointment.notes && (
+                          <div className="appointment-info full-width">
+                            <i className="appointment-icon">📝</i>
+                            <span>{appointment.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="appointment-actions">
+                        <button className="secondary-button">
+                          {isAudiologist ? 'Edit Appointment' : 'Reschedule'}
+                        </button>
+                        <button className="outlined-button">
+                          {isAudiologist ? 'Mark as Complete' : 'Cancel'}
+                        </button>
+                      </div>
                     </div>
-                    <div className="product-details">
-                      <h3>Auralise Pro X5</h3>
-                      <p>Crystal Blue • Premium Package</p>
-                    </div>
-                    <div className="product-price">£1,299</div>
+                  ))
+                ) : (
+                  <div className="no-appointments">
+                    <p>{isAudiologist ? 'No upcoming patient appointments.' : 'No upcoming appointments.'}</p>
+                    {!isAudiologist && (
+                      <button className="primary-button" onClick={() => window.location.href = '/book'}>
+                        Book New Appointment
+                      </button>
+                    )}
                   </div>
-                  <div className="order-footer">
-                    <div className="order-date">Ordered on March 15, 2025</div>
-                    <button className="secondary-button">Track Order</button>
-                  </div>
-                </div>
-                <div className="no-orders">
-                  <p>No previous orders found.</p>
-                  <button className="primary-button">Browse Shop</button>
-                </div>
+                )}
               </div>
             )}
           </div>
