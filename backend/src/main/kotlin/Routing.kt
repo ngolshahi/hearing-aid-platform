@@ -12,6 +12,7 @@ import routes.userRoutes
 import routes.hearingAidRoutes
 import routes.audiologistRoutes
 import routes.appointmentRoutes
+import routes.hearingTestRoutes
 
 
 @Serializable
@@ -37,5 +38,6 @@ fun Application.configureRouting() {
         hearingAidRoutes()
         appointmentRoutes()
         audiologistRoutes()
+        hearingTestRoutes()
     }
 }
