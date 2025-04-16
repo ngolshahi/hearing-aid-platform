@@ -1,0 +1,166 @@
+/* Global Styles */
+:root {
+  --primary-color: #2c5282;
+  --primary-hover: #2a4365;
+  --text-dark: #1a202c;
+  --text-medium: #4a5568;
+  --text-light: #718096;
+  --border-color: #e2e8f0;
+  --bg-light: #f7fafc;
+  --bg-white: #ffffff;
+  --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-dark: 0 8px 16px rgba(0, 0, 0, 0.12);
+  --danger-color: #e53e3e;
+  --success-color: #38a169;
+  --warning-color: #dd6b20;
+  --info-color: #3182ce;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-dark);
+  background-color: var(--bg-light);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Better mobile tap targets */
+button, 
+a, 
+input[type="button"], 
+input[type="submit"] {
+  touch-action: manipulation;
+}
+
+/* Global button styles */
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Links */
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* Forms */
+input, 
+select, 
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* Container (reusable) */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+  
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Better spacing on mobile */
+  .container {
+    padding: 0 1rem;
+  }
+  
+  /* Make all click targets at least 44x44px on mobile (accessibility recommendation) */
+  button, a, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve scrolling performance */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix for position: fixed elements on mobile */
+  .fixed-element {
+    position: fixed;
+    -webkit-transform: translateZ(0);
+  }
+}
+
+/* Utility classes */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body.dark-mode-support {
+    --text-dark: #f7fafc;
+    --text-medium: #e2e8f0;
+    --text-light: #a0aec0;
+    --border-color: #2d3748;
+    --bg-light: #1a202c;
+    --bg-white: #2d3748;
+  }
+} 
