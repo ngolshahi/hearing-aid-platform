@@ -118,3 +118,72 @@ data class AuthResponse(val email: String?, val token: String?, val message: Str
 
 @Serializable
 data class UserRequest(val email: String, val password: String, val firstName: String? = null, val lastName: String? = null)
+
+@Serializable
+data class HearingTest @JsonCreator constructor(
+    @JsonProperty("id") val id: String = UUID.randomUUID().toString(),
+    @JsonProperty("userId") val userId: String? = null,
+    @JsonProperty("date") val date: String = "",
+    @JsonProperty("results") val results: List<ToneTestResult> = listOf(),
+    @JsonProperty("overallScore") val overallScore: Int = 0,
+    @JsonProperty("recommendation") val recommendation: String = ""
+)
+
+@Serializable
+data class ToneTestResult @JsonCreator constructor(
+    @JsonProperty("frequency") val frequency: Int = 0,
+    @JsonProperty("heard") val heard: Boolean = false,
+    @JsonProperty("intensity") val intensity: Int = 50 // Volume level 0-100
+)
+
+@Serializable
+data class HearingTestRequest @JsonCreator constructor(
+    @JsonProperty("userId") val userId: String? = null,
+    @JsonProperty("results") val results: List<ToneTestResult> = listOf()
+)
+
+@Serializable
+data class HearingTestResponse @JsonCreator constructor(
+    @JsonProperty("testId") val testId: String = "",
+    @JsonProperty("overallScore") val overallScore: Int = 0,
+    @JsonProperty("recommendation") val recommendation: String = ""
+)
+
+@Serializable
+data class ContextualTest @JsonCreator constructor(
+    @JsonProperty("id") val id: String = UUID.randomUUID().toString(),
+    @JsonProperty("title") val title: String = "",
+    @JsonProperty("description") val description: String = "",
+    @JsonProperty("audioUrl") val audioUrl: String = "",
+    @JsonProperty("questions") val questions: List<ContextualQuestion> = listOf(),
+    @JsonProperty("backgroundNoise") val backgroundNoise: String = "none" // "none", "low", "medium", "high"
+)
+
+@Serializable
+data class ContextualQuestion @JsonCreator constructor(
+    @JsonProperty("id") val id: String = UUID.randomUUID().toString(),
+    @JsonProperty("text") val text: String = "",
+    @JsonProperty("options") val options: List<String> = listOf(),
+    @JsonProperty("correctAnswer") val correctAnswer: Int = 0
+)
+
+@Serializable
+data class ContextualTestResult @JsonCreator constructor(
+    @JsonProperty("userId") val userId: String? = null,
+    @JsonProperty("testId") val testId: String = "",
+    @JsonProperty("score") val score: Int = 0,
+    @JsonProperty("maxScore") val maxScore: Int = 0,
+    @JsonProperty("answers") val answers: Map<String, Int> = mapOf()
+)
+
+@Serializable
+data class CompleteHearingTestResult @JsonCreator constructor(
+    @JsonProperty("id") val id: String = UUID.randomUUID().toString(),
+    @JsonProperty("userId") val userId: String? = null,
+    @JsonProperty("date") val date: String = "",
+    @JsonProperty("toneResults") val toneResults: List<ToneTestResult> = listOf(),
+    @JsonProperty("contextualResult") val contextualResult: ContextualTestResult? = null,
+    @JsonProperty("toneScore") val toneScore: Int = 0,
+    @JsonProperty("overallScore") val overallScore: Int = 0,
+    @JsonProperty("recommendation") val recommendation: String = ""
+)
