@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Adjust this URL based on where your backend is running
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'http://192.168.0.244:8080/api';
 
 // Feature interface for hearing aids
 export interface Feature {
