@@ -214,7 +214,10 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
-      handleCompleteTest();
+      // Add a small delay to ensure the state update has completed
+      setTimeout(() => {
+        handleCompleteTest();
+      }, 100);
     }
   };
 
@@ -225,7 +228,7 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     
     // Check each question to see if it was answered correctly
     questions.forEach((question, index) => {
-      // Use both the question ID and the index to find the answer
+      // Use the question ID to find the answer
       const userAnswer = results[question.id];
       const isCorrect = userAnswer === question.correctAnswer;
       
