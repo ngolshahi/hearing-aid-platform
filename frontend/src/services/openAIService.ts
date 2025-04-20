@@ -34,10 +34,10 @@ CRITICAL RULES:
 
 Example of a good conversation and question:
 Conversation:
-- Male: "Would you like to try the new coffee shop on Main Street?"
-- Female: "Yes, I've heard their lattes are amazing. They also have great pastries."
+- Female: "Would you like to try the new coffee shop on Main Street?"
+- Male: "Yes, I've heard their lattes are amazing. They also have great pastries."
 
-Good question: "What did the woman say about the coffee shop's food and drinks?"
+Good question: "What did the man say about the coffee shop's food and drinks?"
 Good options: [
   "They have terrible coffee",
   "They have amazing lattes and great pastries",
@@ -63,8 +63,8 @@ Bad question: "What did the man say about the pastries?" (because the man didn't
             {
               "id": "unique-id",
               "conversation": [
-                {"text": "First speaker's text (male)", "voice": "male"},
-                {"text": "Second speaker's text (female)", "voice": "female"}
+                {"text": "First speaker's text (female)", "voice": "female"},
+                {"text": "Second speaker's text (male)", "voice": "male"}
               ],
               "context": "Setting description",
               "question": "Question that can be answered by listening to the conversation",
@@ -113,8 +113,13 @@ Bad question: "What did the man say about the pastries?" (because the man didn't
         const conversationText = q.conversation.map((c: { text: string }) => c.text).join(' ');
         
         // Check if the correct answer is a direct quote or paraphrase of the conversation
+        // Make this check more lenient by looking for key phrases rather than exact matches
         const isAnswerValid = conversationText.toLowerCase().includes(correctOption.toLowerCase()) ||
-                            correctOption.toLowerCase().includes(conversationText.toLowerCase());
+                            correctOption.toLowerCase().includes(conversationText.toLowerCase()) ||
+                            // Check if key words from the answer appear in the conversation
+                            correctOption.toLowerCase().split(' ').some((word: string) => 
+                              word.length > 3 && conversationText.toLowerCase().includes(word)
+                            );
         
         if (!isAnswerValid) {
           console.log('Answer does not match conversation for question:', q.question);
@@ -123,7 +128,10 @@ Bad question: "What did the man say about the pastries?" (because the man didn't
         
         // Check if the question correctly identifies the speaker
         const questionText = q.question.toLowerCase();
-        const hasCorrectSpeakerReference = questionText.includes('the man') || questionText.includes('the woman');
+        const hasCorrectSpeakerReference = questionText.includes('the man') || 
+                                          questionText.includes('the woman') ||
+                                          questionText.includes('the first person') ||
+                                          questionText.includes('the second person');
         
         if (!hasCorrectSpeakerReference) {
           console.log('Question does not identify speaker for:', q.question);
@@ -165,11 +173,11 @@ const getDefaultQuestions = (): ConversationQuestion[] => {
     {
       id: '1',
       conversation: [
-        { text: "Would you like to try the new coffee shop on Main Street?", voice: "male" },
-        { text: "Yes, I've heard their lattes are amazing. They also have great pastries.", voice: "female" }
+        { text: "Would you like to try the new coffee shop on Main Street?", voice: "female" },
+        { text: "Yes, I've heard their lattes are amazing. They also have great pastries.", voice: "male" }
       ],
       context: "Two friends discussing a new coffee shop",
-      question: "What did the second person say about the coffee shop?",
+      question: "What did the man say about the coffee shop?",
       options: [
         "They have terrible coffee",
         "They have amazing lattes and great pastries",
@@ -181,12 +189,12 @@ const getDefaultQuestions = (): ConversationQuestion[] => {
     {
       id: '2',
       conversation: [
-        { text: "I'm thinking of going to the beach this weekend. Would you like to join?", voice: "male" },
-        { text: "That sounds great! What time were you planning to go?", voice: "female" },
-        { text: "How about 10 AM on Saturday? We can pack a picnic lunch.", voice: "male" }
+        { text: "I'm thinking of going to the beach this weekend. Would you like to join?", voice: "female" },
+        { text: "That sounds great! What time were you planning to go?", voice: "male" },
+        { text: "How about 10 AM on Saturday? We can pack a picnic lunch.", voice: "female" }
       ],
       context: "Two friends planning a beach trip",
-      question: "What time did they decide to go to the beach?",
+      question: "What time did the woman suggest going to the beach?",
       options: [
         "9 AM",
         "10 AM",
