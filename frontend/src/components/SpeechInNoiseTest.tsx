@@ -213,18 +213,23 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
   const handleCompleteTest = () => {
     // Calculate score based on correct answers
     const totalQuestions = questions.length;
-    const correctAnswers = Object.entries(results).filter(
-      ([questionId, answerIndex]) => {
-        const question = questions.find(q => q.id === questionId);
-        const isCorrect = question && answerIndex === question.correctAnswer;
-        console.log(`Question ${questionId}:`, {
-          userAnswer: answerIndex,
-          correctAnswer: question?.correctAnswer,
-          isCorrect
-        });
-        return isCorrect;
+    let correctAnswers = 0;
+    
+    // Check each question to see if it was answered correctly
+    questions.forEach(question => {
+      const userAnswer = results[question.id];
+      const isCorrect = userAnswer === question.correctAnswer;
+      
+      console.log(`Question ${question.id}:`, {
+        userAnswer,
+        correctAnswer: question.correctAnswer,
+        isCorrect
+      });
+      
+      if (isCorrect) {
+        correctAnswers++;
       }
-    ).length;
+    });
 
     console.log('Test Results:', {
       totalQuestions,
