@@ -8,6 +8,7 @@ import io.ktor.server.routing.*
 import model.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 // Background noise levels
 private enum class BackgroundNoise { none, low, medium, high }
@@ -68,6 +69,15 @@ private val sampleContextualTests = listOf(
             )
         )
     )
+)
+
+// Sample sentences for speech-in-noise test
+private val speechInNoiseSentences = listOf(
+    "The quick brown fox jumps over the lazy dog",
+    "She sells seashells by the seashore",
+    "How much wood would a woodchuck chuck",
+    "Peter Piper picked a peck of pickled peppers",
+    "The rain in Spain stays mainly in the plain"
 )
 
 fun Route.hearingTestRoutes() {
@@ -217,6 +227,41 @@ fun Route.hearingTestRoutes() {
             call.respond(
                 HttpStatusCode.InternalServerError, 
                 mapOf("error" to "Failed to retrieve hearing test history: ${e.message}")
+            )
+        }
+    }
+
+    // Endpoint for speech-in-noise test
+    post("/hearing-test/speech-in-noise") {
+        try {
+            val request = call.receive<SpeechInNoiseTestRequest>()
+            
+            // Calculate score based on correct recognitions
+            val correctCount = request.results.count { it.isCorrect }
+            val totalTests = request.results.size
+            val overallScore = if (totalTests > 0) (correctCount * 100) / totalTests else 0
+            
+            // Generate recommendation based on score
+            val recommendation = when {
+                overallScore >= 90 -> "Excellent speech recognition in noisy environments."
+                overallScore >= 70 -> "Good speech recognition, but may have difficulty in very noisy situations."
+                overallScore >= 50 -> "Moderate difficulty understanding speech in noise. Consider a consultation."
+                else -> "Significant difficulty understanding speech in noise. Please schedule a consultation."
+            }
+            
+            // Create response
+            call.respond(
+                HttpStatusCode.OK,
+                SpeechInNoiseTestResponse(
+                    testId = UUID.randomUUID().toString(),
+                    overallScore = overallScore,
+                    recommendation = recommendation
+                )
+            )
+        } catch (e: Exception) {
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to "Failed to process speech-in-noise test: ${e.message}")
             )
         }
     }
