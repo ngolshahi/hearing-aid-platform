@@ -1,0 +1,73 @@
+.audiogram-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 1rem auto;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.grid-line {
+  stroke: #e0e0e0;
+  stroke-width: 1;
+}
+
+.axis {
+  stroke: #333;
+  stroke-width: 2;
+}
+
+.label {
+  font-size: 12px;
+  fill: #666;
+}
+
+.audiogram-line {
+  stroke: #3498db;
+  stroke-width: 2;
+}
+
+.audiogram-point {
+  fill: white;
+  stroke-width: 2;
+}
+
+.audiogram-point.heard {
+  stroke: #2ecc71;
+}
+
+.audiogram-point.not-heard {
+  stroke: #e74c3c;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .audiogram-container {
+    margin: 0.5rem auto;
+    padding: 0.5rem;
+  }
+
+  .label {
+    font-size: 10px;
+  }
+
+  .audiogram-point {
+    r: 3;
+  }
+
+  .audiogram-line {
+    stroke-width: 1.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .label {
+    font-size: 8px;
+  }
+
+  .audiogram-point {
+    r: 2;
+  }
+} 
