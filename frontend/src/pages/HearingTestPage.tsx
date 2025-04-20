@@ -11,9 +11,12 @@ import {
   ContextualTest,
   ContextualTestResult,
   detectBackgroundNoise,
-  detectHeadphones
+  detectHeadphones,
+  submitSpeechInNoiseTest
 } from '../services/hearingTestService';
 import ContextualHearingTest from '../components/ContextualHearingTest';
+import SpeechInNoiseTest from '../components/SpeechInNoiseTest';
+import AudiogramGraph from '../components/AudiogramGraph';
 
 interface TestStep {
   frequency: number;
@@ -56,7 +59,7 @@ const HearingTestPage: React.FC = () => {
   const [results, setResults] = useState<Record<number, boolean>>({});
   const [isTestComplete, setIsTestComplete] = useState(false);
   const [testResults, setTestResults] = useState<{ score: number; recommendation: string } | null>(null);
-  const [volume, setVolume] = useState<number>(0.5); // 0-1 volume scale
+  const [volume, setVolume] = useState<number>(0.5); // Initialize at exactly 50%
   const [loading, setLoading] = useState(false); // Used for API calls
   const prevVolume = useRef<number>(0.5); // To track actual volume changes
   
@@ -74,7 +77,7 @@ const HearingTestPage: React.FC = () => {
   const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // State for the multi-step test flow
-  const [testStage, setTestStage] = useState<'intro' | 'environment-check' | 'tone' | 'contextual' | 'results'>('intro');
+  const [testStage, setTestStage] = useState<'intro' | 'environment-check' | 'tone' | 'speech-in-noise' | 'contextual' | 'results' | 'final-results'>('intro');
   const [showContextualTest, setShowContextualTest] = useState(false);
   const [contextualScore, setContextualScore] = useState<{score: number, maxScore: number} | null>(null);
   
@@ -82,6 +85,8 @@ const HearingTestPage: React.FC = () => {
   const [availableContextualTests, setAvailableContextualTests] = useState<ContextualTest[]>([]);
   const [selectedContextualTest, setSelectedContextualTest] = useState<ContextualTest | null>(null);
   const [contextualTestAnswers, setContextualTestAnswers] = useState<Record<string, number>>({});
+  const [speechInNoiseScore, setSpeechInNoiseScore] = useState<number | null>(null);
+  const [speechInNoiseRecommendation, setSpeechInNoiseRecommendation] = useState<string | null>(null);
 
   const testSteps: TestStep[] = [
     { frequency: 250, description: "Low frequency sounds like thunder or bass drums" },
@@ -248,13 +253,13 @@ const HearingTestPage: React.FC = () => {
       clearTimeout(listeningTimeoutRef.current);
       listeningTimeoutRef.current = null;
     }
-
+    
+    // Move to next step or complete test
     if (currentStep < testSteps.length) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(prev => prev + 1);
     } else {
-      // Basic tone test is complete
+      // Submit pure tone test results
       setLoading(true);
-      
       try {
         // Format results for API
         const formattedResults: ToneTestResult[] = Object.keys(newResults).map(frequencyKey => ({
@@ -274,8 +279,12 @@ const HearingTestPage: React.FC = () => {
           recommendation: response.recommendation
         });
         
-        // Show option to proceed to contextual test or see final results
+        // Reset tone test state
+        setCurrentStep(0);
         setIsTestComplete(true);
+        
+        // Move directly to speech-in-noise test
+        setTestStage('speech-in-noise');
       } catch (error) {
         console.error('Error submitting test results:', error);
         alert('There was a problem submitting your test results. Please try again.');
@@ -332,6 +341,17 @@ const HearingTestPage: React.FC = () => {
     }
     
     setTestStage('results');
+  };
+
+  const handleSpeechInNoiseComplete = (score: number, recommendation: string) => {
+    // Update the state with the results
+    setSpeechInNoiseScore(score);
+    setSpeechInNoiseRecommendation(recommendation);
+    setTestStage('final-results');
+  };
+
+  const handleSpeechInNoiseCancel = () => {
+    setTestStage('tone');
   };
 
   const handleBookConsultation = () => {
@@ -454,6 +474,86 @@ const HearingTestPage: React.FC = () => {
     );
   }
 
+  // Show speech-in-noise test
+  if (testStage === 'speech-in-noise') {
+    return (
+      <div className="hearing-test-page">
+        <div className="test-container">
+          <SpeechInNoiseTest 
+            onComplete={handleSpeechInNoiseComplete}
+            onCancel={handleSpeechInNoiseCancel}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show final results with both tests
+  if (testStage === 'final-results') {
+    return (
+      <div className="hearing-test-page">
+        <div className="test-container results-container">
+          <h2>Your Complete Hearing Test Results</h2>
+          
+          <div className="results-summary">
+            <div className="test-scores">
+              <div className="score-section">
+                <h3>Pure Tone Test</h3>
+                <div className="score-circle">
+                  <span>{testResults?.score || 0}%</span>
+                </div>
+                <p className="recommendation">{testResults?.recommendation}</p>
+              </div>
+              
+              <div className="score-section">
+                <h3>Speech-in-Noise Test</h3>
+                <div className="score-circle">
+                  <span>{speechInNoiseScore || 0}%</span>
+                </div>
+                <p className="recommendation">{speechInNoiseRecommendation}</p>
+              </div>
+            </div>
+            
+            <div className="audiogram-section">
+              <h3>Pure Tone Test Audiogram</h3>
+              <AudiogramGraph 
+                results={results}
+                frequencies={testSteps.map(step => step.frequency)}
+              />
+            </div>
+            
+            <div className="frequency-results">
+              <h3>Pure Tone Test Details</h3>
+              {testSteps.map((step) => (
+                <div key={step.frequency} className="frequency-item">
+                  <span className="frequency-label">{step.frequency}Hz:</span>
+                  <span className={`frequency-result ${results[step.frequency] ? 'heard' : 'not-heard'}`}>
+                    {results[step.frequency] ? 'Heard' : 'Not Heard'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="final-actions">
+              <button 
+                className="primary-button"
+                onClick={handleBookConsultation}
+              >
+                Book Medical Hearing Test
+              </button>
+              <button 
+                className="secondary-button"
+                onClick={handleStart}
+              >
+                Retake Test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Conditionally render based on the test stage
   if (testStage === 'results' || (isTestComplete && !showContextualTest)) {
     return (
@@ -474,15 +574,6 @@ const HearingTestPage: React.FC = () => {
                 <p>Pure Tone Test Score</p>
               </div>
               
-              {contextualScore && (
-                <div className="score-display contextual-score">
-                  <div className="score-circle">
-                    <span>{Math.round((contextualScore.score / contextualScore.maxScore) * 100)}%</span>
-                  </div>
-                  <p>Contextual Test Score</p>
-                </div>
-              )}
-              
               <p className="recommendation">{testResults?.recommendation || "Please consult with a professional for a more accurate assessment."}</p>
               
               <div className="frequency-results">
@@ -497,26 +588,14 @@ const HearingTestPage: React.FC = () => {
                 ))}
               </div>
               
-              {contextualScore && (
-                <div className="contextual-results">
-                  <h3>Contextual Test Results</h3>
-                  <p>You answered {contextualScore.score} out of {contextualScore.maxScore} questions correctly.</p>
-                  <p className="contextual-interpretation">
-                    {contextualScore.score === contextualScore.maxScore 
-                      ? "Excellent! You were able to understand speech perfectly in a noisy environment."
-                      : contextualScore.score >= contextualScore.maxScore / 2
-                        ? "Good. You were able to understand most of the conversation in a noisy environment."
-                        : "You had some difficulty understanding speech in a noisy environment."}
-                  </p>
-                </div>
-              )}
-              
-              <div className="action-buttons">
-                <button className="primary-button" onClick={handleBookConsultation}>
-                  Book Professional Consultation
-                </button>
-                <button className="secondary-button" onClick={handleStart}>
-                  Retake Test
+              <div className="next-test">
+                <h3>Next: Speech-in-Noise Test</h3>
+                <p>This test will evaluate how well you can understand speech in noisy environments.</p>
+                <button 
+                  className="primary-button"
+                  onClick={() => setTestStage('speech-in-noise')}
+                >
+                  Continue to Speech-in-Noise Test
                 </button>
               </div>
             </div>
@@ -536,43 +615,6 @@ const HearingTestPage: React.FC = () => {
             onComplete={handleContextualTestComplete}
             onCancel={handleSkipToResults}
           />
-        </div>
-      </div>
-    );
-  }
-
-  // Show completion of tone test with option for contextual test
-  if (isTestComplete) {
-    return (
-      <div className="hearing-test-page">
-        <div className="test-container">
-          <h2>Pure Tone Test Complete</h2>
-          <p className="completion-message">
-            You've completed the basic hearing test. Your results have been saved.
-          </p>
-          
-          <div className="next-steps">
-            <h3>Would you like to continue with a more advanced test?</h3>
-            <p>
-              The next test will evaluate how well you can understand speech in
-              noisy environments, which is often a better indicator of real-world hearing ability.
-            </p>
-            <div className="action-buttons">
-              <button 
-                className="primary-button" 
-                onClick={handleStartContextualTest}
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Continue to Speech Test'}
-              </button>
-              <button 
-                className="secondary-button" 
-                onClick={handleSkipToResults}
-              >
-                Skip to Results
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -657,16 +699,16 @@ const HearingTestPage: React.FC = () => {
             <input 
               type="range" 
               id="volume-slider" 
-              min="10" 
+              min="0" 
               max="100" 
               value={volume * 100} 
               onChange={handleVolumeChange}
               disabled={isPlaying || tonePlayingStatus !== 'idle'}
             />
             <div className="volume-marks">
-              <span>Low</span>
-              <span>50%</span>
-              <span>High</span>
+              <span>0%</span>
+              <span className="volume-target">50%</span>
+              <span>100%</span>
             </div>
           </div>
 
