@@ -6,6 +6,12 @@ const AZURE_OPENAI_MODEL = 'gpt-35-turbo';
 
 export const generateSpeechInNoiseQuestions = async (count: number = 5): Promise<ConversationQuestion[]> => {
   try {
+    // Check if API key is available
+    if (!AZURE_OPENAI_KEY) {
+      console.error('Azure OpenAI API key is missing');
+      return getDefaultQuestions();
+    }
+
     const response = await fetch(`${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_MODEL}/chat/completions?api-version=2023-05-15`, {
       method: 'POST',
       headers: {
@@ -79,7 +85,9 @@ Bad question: "What did the man say about the pastries?" (because the man didn't
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} ${response.statusText}`, errorText);
+      return getDefaultQuestions();
     }
 
     const data = await response.json();

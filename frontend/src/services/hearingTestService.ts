@@ -324,6 +324,13 @@ export const generateTone = (frequency: number, volume: number = 0.5, duration: 
 export const detectBackgroundNoise = async (): Promise<'low' | 'medium' | 'high'> => {
   return new Promise(async (resolve) => {
     try {
+      // Check if the API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('getUserMedia API not supported, assuming medium noise level');
+        resolve('medium');
+        return;
+      }
+      
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -402,6 +409,13 @@ export const detectBackgroundNoise = async (): Promise<'low' | 'medium' | 'high'
 export const detectHeadphones = async (): Promise<boolean> => {
   return new Promise(async (resolve) => {
     try {
+      // Check if the API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        console.warn('MediaDevices API not supported, assuming no headphones');
+        resolve(false);
+        return;
+      }
+      
       // Try to get the list of audio output devices
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioOutputDevices = devices.filter(device => device.kind === 'audiooutput');
