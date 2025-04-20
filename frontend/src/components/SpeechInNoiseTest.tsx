@@ -196,10 +196,15 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     // Log the answer for debugging
     console.log(`Answering question ${questionId} with option ${answerIndex}`);
     
-    setResults(prev => ({
-      ...prev,
-      [questionId]: answerIndex
-    }));
+    // Store the answer in the results object
+    setResults(prev => {
+      const newResults = {
+        ...prev,
+        [questionId]: answerIndex
+      };
+      console.log('Updated results:', newResults);
+      return newResults;
+    });
 
     // Reset playing state
     setIsPlaying(false);
@@ -227,7 +232,8 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
       console.log(`Question ${index + 1} (ID: ${question.id}):`, {
         userAnswer,
         correctAnswer: question.correctAnswer,
-        isCorrect
+        isCorrect,
+        allResults: results
       });
       
       if (isCorrect) {
