@@ -214,14 +214,22 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
-      // Add a small delay to ensure the state update has completed
+      // For the last question, we need to ensure the state update is complete
+      // before calculating the score
+      const finalResults = {
+        ...results,
+        [questionId]: answerIndex
+      };
+      
+      // Use the updated results directly instead of relying on state
       setTimeout(() => {
-        handleCompleteTest();
+        calculateScore(finalResults);
       }, 100);
     }
   };
 
-  const handleCompleteTest = () => {
+  // New function to calculate score with the provided results
+  const calculateScore = (finalResults: Record<string, number>) => {
     // Calculate score based on correct answers
     const totalQuestions = questions.length;
     let correctAnswers = 0;
@@ -229,14 +237,14 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     // Check each question to see if it was answered correctly
     questions.forEach((question, index) => {
       // Use the question ID to find the answer
-      const userAnswer = results[question.id];
+      const userAnswer = finalResults[question.id];
       const isCorrect = userAnswer === question.correctAnswer;
       
       console.log(`Question ${index + 1} (ID: ${question.id}):`, {
         userAnswer,
         correctAnswer: question.correctAnswer,
         isCorrect,
-        allResults: results
+        allResults: finalResults
       });
       
       if (isCorrect) {
@@ -247,7 +255,7 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     console.log('Test Results:', {
       totalQuestions,
       correctAnswers,
-      results,
+      results: finalResults,
       questionIds: questions.map(q => q.id)
     });
 
@@ -256,6 +264,11 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     
     setTestCompleted(true);
     onComplete(score, recommendation);
+  };
+
+  const handleCompleteTest = () => {
+    // Use the current results state
+    calculateScore(results);
   };
 
   const getRecommendation = (score: number): string => {
