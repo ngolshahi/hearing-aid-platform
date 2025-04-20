@@ -96,7 +96,7 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
         
         // Set the voice based on the speaker
         const voice = part.voice === 'male' ? 'en-US-GuyNeural' : 'en-US-JennyNeural';
-        speechConfig.speechSynthesisVoiceName = voice;
+        synthesizer.voiceName = voice;
         
         // Create a promise that resolves when speech synthesis and playback is complete
         await new Promise<void>((resolve, reject) => {

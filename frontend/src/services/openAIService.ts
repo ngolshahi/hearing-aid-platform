@@ -1,6 +1,6 @@
 import { ConversationQuestion } from '../components/SpeechInNoiseTest';
 
-const AZURE_OPENAI_KEY = '2XsU1yUNCCM7zTFvugYBMJBBRrEcLmDb0RDq0LNCgLcyB1TNrKLKJQQJ99BBACmepeSXJ3w3AAABACOGUXay';
+const AZURE_OPENAI_KEY = import.meta.env.VITE_AZURE_OPENAI_KEY || '';
 const AZURE_OPENAI_ENDPOINT = 'https://ng7g22-ai.openai.azure.com/';
 const AZURE_OPENAI_MODEL = 'gpt-35-turbo';
 
