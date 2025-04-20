@@ -193,6 +193,9 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
   };
 
   const handleAnswer = (questionId: string, answerIndex: number) => {
+    // Log the answer for debugging
+    console.log(`Answering question ${questionId} with option ${answerIndex}`);
+    
     setResults(prev => ({
       ...prev,
       [questionId]: answerIndex
@@ -216,11 +219,12 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     let correctAnswers = 0;
     
     // Check each question to see if it was answered correctly
-    questions.forEach(question => {
+    questions.forEach((question, index) => {
+      // Use both the question ID and the index to find the answer
       const userAnswer = results[question.id];
       const isCorrect = userAnswer === question.correctAnswer;
       
-      console.log(`Question ${question.id}:`, {
+      console.log(`Question ${index + 1} (ID: ${question.id}):`, {
         userAnswer,
         correctAnswer: question.correctAnswer,
         isCorrect
@@ -234,7 +238,8 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
     console.log('Test Results:', {
       totalQuestions,
       correctAnswers,
-      results
+      results,
+      questionIds: questions.map(q => q.id)
     });
 
     const score = Math.round((correctAnswers / totalQuestions) * 100);
