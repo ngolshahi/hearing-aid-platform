@@ -285,7 +285,7 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
 
   if (isLoading) {
     return (
-      <div className="speech-in-noise-test">
+      <div className="speech-in-noise-test loading">
         <h2>Loading Test Questions...</h2>
         <div className="loading-spinner"></div>
       </div>
