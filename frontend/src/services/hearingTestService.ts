@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { SpeechConfig, SpeechSynthesizer, AudioConfig, ResultReason, SpeechRecognizer } from 'microsoft-cognitiveservices-speech-sdk';
 
 export interface ToneTestResult {
   frequency: number;
@@ -47,6 +48,32 @@ export interface CompleteHearingTestResult {
   contextualResult?: ContextualTestResult;
   toneScore: number;
   recommendation?: string;
+}
+
+export interface SpeechInNoiseTest {
+  id: string;
+  sentences: string[];
+  noiseLevel: 'low' | 'medium' | 'high';
+  noiseType: 'cafe' | 'street' | 'restaurant';
+}
+
+export interface SpeechInNoiseResult {
+  sentence: string;
+  recognizedText: string;
+  isCorrect: boolean;
+}
+
+export interface SpeechInNoiseTestRequest {
+  userId?: string;
+  results: SpeechInNoiseResult[];
+  noiseLevel: 'low' | 'medium' | 'high';
+  noiseType: 'cafe' | 'street' | 'restaurant';
+}
+
+export interface SpeechInNoiseTestResponse {
+  testId: string;
+  overallScore: number;
+  recommendation: string;
 }
 
 /**
@@ -430,4 +457,122 @@ export const detectHeadphones = async (): Promise<boolean> => {
       resolve(false); // Default to assuming no headphones if detection fails
     }
   });
+};
+
+// Azure Speech Service configuration
+const speechConfig = SpeechConfig.fromSubscription(
+  import.meta.env.VITE_AZURE_SPEECH_KEY || '',
+  import.meta.env.VITE_AZURE_SPEECH_REGION || ''
+);
+
+// Function to play a sentence with background noise
+export const playSpeechInNoise = async (
+  sentence: string,
+  noiseLevel: 'low' | 'medium' | 'high',
+  noiseType: 'cafe' | 'street' | 'restaurant'
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create audio config for output
+      const audioConfig = AudioConfig.fromDefaultSpeakerOutput();
+      const synthesizer = new SpeechSynthesizer(speechConfig, audioConfig);
+
+      // Load background noise audio
+      const noiseAudio = new Audio(`/audio/noise/${noiseType}-${noiseLevel}.mp3`);
+      noiseAudio.loop = true;
+      noiseAudio.volume = getNoiseVolume(noiseLevel);
+
+      // Start playing background noise
+      noiseAudio.play();
+
+      // Synthesize and play the speech
+      synthesizer.speakTextAsync(
+        sentence,
+        (result) => {
+          if (result.reason === ResultReason.SynthesizingAudioCompleted) {
+            // Stop background noise after speech is complete
+            noiseAudio.pause();
+            noiseAudio.currentTime = 0;
+            synthesizer.close();
+            resolve();
+          } else {
+            synthesizer.close();
+            reject(new Error('Speech synthesis failed'));
+          }
+        },
+        (error) => {
+          synthesizer.close();
+          reject(error);
+        }
+      );
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+// Function to recognize speech
+export const recognizeSpeech = async (): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+      const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+      recognizer.recognizeOnceAsync(
+        (result) => {
+          if (result.reason === ResultReason.RecognizedSpeech) {
+            resolve(result.text);
+          } else {
+            reject(new Error('Speech recognition failed'));
+          }
+          recognizer.close();
+        },
+        (error) => {
+          recognizer.close();
+          reject(error);
+        }
+      );
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+// Helper function to get noise volume based on level
+const getNoiseVolume = (level: 'low' | 'medium' | 'high'): number => {
+  switch (level) {
+    case 'low':
+      return 0.3;
+    case 'medium':
+      return 0.5;
+    case 'high':
+      return 0.7;
+    default:
+      return 0.5;
+  }
+};
+
+// Function to submit speech-in-noise test results
+export const submitSpeechInNoiseTest = async (
+  testData: SpeechInNoiseTestRequest
+): Promise<SpeechInNoiseTestResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/hearing-test/speech-in-noise`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to submit speech-in-noise test results');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting speech-in-noise test results:', error);
+    throw error;
+  }
 }; 
