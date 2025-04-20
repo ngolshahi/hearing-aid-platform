@@ -52,10 +52,14 @@ Create a .env file in the root directory of your backend project and add your Az
 Example .env file for backend:
 
 ```bash
-AZURE_COSMOS_DB_URI=your_cosmos_db_uri
-AZURE_COSMOS_DB_KEY=your_cosmos_db_key
-AZURE_COSMOS_DB_DATABASE=your_cosmos_db_name
-AZURE_COSMOS_DB_CONTAINER=your_cosmos_db_container_name
+AZURE_COSMOS_DB_URI="https://hearing-aid-db.documents.azure.com:443/"
+AZURE_COSMOS_DB_KEY="16P2pkpvoifBx2vOzWaeIFl4WjSM8pJdazbNqZLJtHRjDuQn0NFTXMpuWlGghCr0PSjePwNPKLu9ACDblTd15Q=="
+AZURE_COSMOS_DB_DATABASE="HearingAidDB"
+USERS_CONTAINER="users"
+HEARING_AID_CONTAINER="hearingAids"
+APPOINTMENTS_CONTAINER="appointments"
+AUDIOLOGISTS_CONTAINER="audiologists"
+APPOINTMENT_TYPES_CONTAINER="appointmentTypes"
 ```
 
 ### 3. Start the backend
