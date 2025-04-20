@@ -1,0 +1,267 @@
+.speech-in-noise-test {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.speech-in-noise-test h2 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.test-progress {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.noise-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.noise-level,
+.noise-type {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 300px;
+}
+
+.noise-controls label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.noise-controls select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+  transition: border-color 0.3s;
+}
+
+.noise-controls select:focus {
+  border-color: #3498db;
+  outline: none;
+}
+
+.noise-controls select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.test-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.play-button {
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.play-button:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.play-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.listening-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pulse-animation {
+  width: 50px;
+  height: 50px;
+  background-color: #3498db;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+  }
+}
+
+.question-section {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.question-section h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+}
+
+.conversation-context,
+.question-text {
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  color: #34495e;
+}
+
+.answer-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.answer-button {
+  padding: 1rem;
+  background-color: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.answer-button:hover:not(:disabled) {
+  background-color: #f8f9fa;
+  border-color: #3498db;
+}
+
+.answer-button.selected {
+  background-color: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.answer-button:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.test-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.cancel-button {
+  padding: 0.8rem 1.5rem;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.cancel-button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.test-complete {
+  text-align: center;
+  padding: 2rem;
+  background-color: #2ecc71;
+  color: white;
+  border-radius: 12px;
+  margin-top: 2rem;
+}
+
+.recognized-text {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-height: 100px;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .speech-in-noise-test {
+    padding: 1rem;
+  }
+
+  .speech-in-noise-test h2 {
+    font-size: 1.5rem;
+  }
+
+  .noise-controls {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .noise-level,
+  .noise-type {
+    max-width: 100%;
+  }
+
+  .answer-options {
+    grid-template-columns: 1fr;
+  }
+
+  .question-section {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .speech-in-noise-test {
+    padding: 0.5rem;
+  }
+
+  .play-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .question-section h3 {
+    font-size: 1.2rem;
+  }
+} 
