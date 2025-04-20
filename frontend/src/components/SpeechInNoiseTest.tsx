@@ -90,13 +90,13 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
       
       // Start conversation sequentially
       for (const part of questions[currentQuestion].conversation) {
+        // Set the voice based on the speaker
+        const voice = part.voice === 'male' ? 'en-US-GuyNeural' : 'en-US-JennyNeural';
+        speechConfig.speechSynthesisVoiceName = voice;
+        
         // Create a new synthesizer for each part with a custom audio output
         const audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput();
         const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-        
-        // Set the voice based on the speaker
-        const voice = part.voice === 'male' ? 'en-US-GuyNeural' : 'en-US-JennyNeural';
-        synthesizer.voiceName = voice;
         
         // Debug logging
         console.log('Voice selection:', {
