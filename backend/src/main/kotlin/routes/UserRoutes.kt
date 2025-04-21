@@ -11,6 +11,7 @@ import model.UserRequest
 import model.LoginRequest
 import model.AuthResponse
 import model.User
+import model.VerificationRequest
 
 
 fun Route.userRoutes() {
@@ -21,17 +22,38 @@ fun Route.userRoutes() {
             try {
                 val userRequest = call.receive<UserRequest>()
                 
-                // Create a user in your database
-                // Note: You need to update the User model to include email, password fields
-                val result = authService.registerUser("${userRequest.firstName} ${userRequest.lastName}", userRequest.email, userRequest.password)
+                // Create a user in your database with validation
+                val (user, message) = authService.registerUser(
+                    "${userRequest.firstName} ${userRequest.lastName}", 
+                    userRequest.email, 
+                    userRequest.password
+                )
                 
-                if (result != null) {
-                    call.respond(HttpStatusCode.Created, result)
+                if (user != null) {
+                    call.respond(HttpStatusCode.Created, mapOf(
+                        "user" to user,
+                        "message" to message
+                    ))
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Failed to register"))
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to message))
                 }
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to register"))
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to register: ${e.message}"))
+            }
+        }
+        
+        post("/verify-email") {
+            try {
+                val verificationRequest = call.receive<VerificationRequest>()
+                val verified = authService.verifyEmail(verificationRequest.email, verificationRequest.token)
+                
+                if (verified) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully"))
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid or expired verification token"))
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to verify email: ${e.message}"))
             }
         }
         

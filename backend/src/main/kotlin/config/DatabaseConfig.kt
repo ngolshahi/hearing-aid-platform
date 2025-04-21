@@ -28,6 +28,7 @@ object DatabaseConfig {
         throw IllegalArgumentException("Appointment types container name is missing")
     val audiologistsContainer: String = dotenv["AUDIOLOGISTS_CONTAINER"] ?: 
         throw IllegalArgumentException("Audiologists container name is missing")
+    val verificationTokensContainer: String = dotenv["VERIFICATION_TOKENS_CONTAINER"] ?: "verification-tokens"
 
     // Create a Cosmos client using the provided credentials
     val cosmosClient: CosmosClient = CosmosClientBuilder()
@@ -49,4 +50,6 @@ object DatabaseConfig {
     fun getAppointmentTypesContainer(): CosmosContainer = database.getContainer(appointmentTypesContainer)
 
     fun getAudiologistsContainer(): CosmosContainer = database.getContainer(audiologistsContainer)
+    
+    fun getVerificationTokensContainer(): CosmosContainer = database.getContainer(verificationTokensContainer)
 }
