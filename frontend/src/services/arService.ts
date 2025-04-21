@@ -255,6 +255,7 @@ interface EarPosition {
 // Function to detect ear position with anatomical points for RIC hearing aid
 const detectEarPosition = (imageData: ImageData): EarPosition | null => {
   const { data, width, height } = imageData;
+  const isMobile = window.innerWidth < 768;
   
   // Skip processing for tiny images
   if (width < 100 || height < 100) {
@@ -262,14 +263,54 @@ const detectEarPosition = (imageData: ImageData): EarPosition | null => {
     return null;
   }
 
-  // For close-up ear images, use special detection focusing on the ear canal
+  // For desktop uploads, the ear is typically centered
+  if (!isMobile) {
+    console.log('Desktop upload detected, using fixed ear position');
+    
+    // For desktop uploads, assume ear is centered in the image
+    // and is a left ear (hearing aid should go on right side of ear)
+    const centerX = Math.floor(width / 2);
+    const centerY = Math.floor(height / 2);
+    
+    // Use fixed ear dimensions based on image size
+    const earWidth = width / 3;
+    const earHeight = height / 2;
+    
+    // Calculate anatomical points based on center position
+    const canalX = centerX + earWidth * 0.2; // Canal on the right side of center for left ear
+    const canalY = centerY + earHeight * 0.1; // Slightly below center
+    
+    // Helix position (top curve of ear)
+    const helixX = centerX; // Center horizontally  
+    const helixY = centerY - earHeight * 0.3; // Above center
+    
+    // Behind ear position (where RIC body sits)
+    const behindEarX = centerX + earWidth * 0.6; // Right of center for left ear
+    const behindEarY = centerY - earHeight * 0.1; // Slightly above center
+    
+    console.log(`Using fixed left ear configuration for desktop with center at (${centerX}, ${centerY})`);
+    
+    return {
+      x: centerX,
+      y: centerY,
+      width: earWidth,
+      height: earHeight,
+      rotation: 0,
+      isRightEar: false, // Always treat as left ear for desktop
+      canalPosition: { x: canalX, y: canalY },
+      helixPosition: { x: helixX, y: helixY },
+      behindEarPosition: { x: behindEarX, y: behindEarY }
+    };
+  }
+  
+  // For mobile (camera view), try detailed detection
   const isCloseUp = detectIfCloseupEar(imageData);
   
   if (isCloseUp) {
     return detectCloseUpEar(imageData);
   }
   
-  // For regular images, use standard detection
+  // For regular mobile images, use standard detection
   return detectStandardEar(imageData);
 };
 
@@ -810,24 +851,42 @@ const renderProductLabel = (
   earPosition: EarPosition,
   hearingAid: HearingAid
 ): void => {
-  const labelWidth = earPosition.width;
-  const labelHeight = 30;
-  const labelX = earPosition.x - labelWidth / 2;
-  const labelY = earPosition.y + earPosition.height + 10;
+  const isMobile = window.innerWidth < 768;
+  const labelWidth = isMobile ? window.innerWidth * 0.8 : earPosition.width * 1.5;
+  const labelHeight = 40;
   
-  // Draw label background
+  // Position at bottom of screen for mobile, near ear for desktop
+  const labelX = isMobile ? 
+    (window.innerWidth - labelWidth) / 2 : 
+    earPosition.x - labelWidth / 2;
+    
+  const labelY = isMobile ? 
+    window.innerHeight - labelHeight - 20 : 
+    earPosition.y + earPosition.height + 20;
+  
+  // Draw label background with rounded corners for better look
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+  ctx.beginPath();
+  ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 8);
+  ctx.fill();
   
   // Draw product name
   ctx.fillStyle = 'white';
-  ctx.font = '14px Arial';
+  ctx.font = isMobile ? '14px Arial' : '16px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(
     hearingAid.name, 
     labelX + labelWidth / 2, 
-    labelY + labelHeight / 2
+    labelY + labelHeight / 2 - (isMobile ? 7 : 8)
+  );
+  
+  // Add "RIC Hearing Aid" text below product name
+  ctx.font = isMobile ? '12px Arial' : '14px Arial';
+  ctx.fillText(
+    'RIC Hearing Aid',
+    labelX + labelWidth / 2,
+    labelY + labelHeight / 2 + (isMobile ? 7 : 8)
   );
 };
 
@@ -1009,10 +1068,39 @@ const renderRIC3DModel = async (
     const canvas = ctx.canvas;
     const { width, height } = canvas;
     
-    // Make sure we have all the necessary positions
+    // IMPORTANT: Always treat as left ear for desktop uploads
+    // This ensures consistent positioning regardless of detection
+    const isMobile = window.innerWidth < 768;
+    const forceLeftEar = !isMobile; // Force left ear for desktop
+    
+    // Override ear side detection for desktop
+    if (forceLeftEar) {
+      console.log('Forcing left ear configuration for desktop');
+      earPosition.isRightEar = false;
+    }
+    
+    // Make sure we have all the necessary positions or create them if missing
     if (!earPosition.canalPosition || !earPosition.helixPosition || !earPosition.behindEarPosition) {
-      console.error('Missing anatomical points for RIC placement');
-      return;
+      console.log('Computing anatomical points from ear center');
+      
+      // Calculate anatomical points relative to ear center if missing
+      const earWidth = earPosition.width;
+      const earHeight = earPosition.height;
+      
+      earPosition.canalPosition = {
+        x: earPosition.x + (earPosition.isRightEar ? -earWidth * 0.2 : earWidth * 0.2),
+        y: earPosition.y + earHeight * 0.1
+      };
+      
+      earPosition.helixPosition = {
+        x: earPosition.x,
+        y: earPosition.y - earHeight * 0.3
+      };
+      
+      earPosition.behindEarPosition = {
+        x: earPosition.x + (earPosition.isRightEar ? -earWidth * 0.6 : earWidth * 0.6),
+        y: earPosition.y - earHeight * 0.1
+      };
     }
     
     // Create an offscreen canvas for 3D rendering
@@ -1034,10 +1122,10 @@ const renderRIC3DModel = async (
     camera.position.z = 5;
     
     // Add lighting for better visibility
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Increased intensity
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Increased intensity
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
     directionalLight.position.set(1, 1, 1);
     scene.add(directionalLight);
     
@@ -1075,27 +1163,29 @@ const renderRIC3DModel = async (
     }
     
     // Calculate appropriate scale based on ear dimensions
-    const isMobile = window.innerWidth < 768;
     const isCloseUp = earPosition.width > width / 3;
     
-    // Scale factor for the 3D model - increase visibility further
-    const scaleFactor = isMobile ? 
-      (isCloseUp ? 1.5 : 1.8) : // Mobile scaling (larger)
-      (isCloseUp ? 1.8 : 2.2);  // Desktop scaling (larger)
+    // Significantly increase scale for better visibility
+    const desktopScaleFactor = isCloseUp ? 2.2 : 2.5;
+    const mobileScaleFactor = isCloseUp ? 2.0 : 2.2;
     
+    // Apply different scaling for desktop and mobile
+    const scaleFactor = isMobile ? mobileScaleFactor : desktopScaleFactor;
     const modelScale = earPosition.width / 180 * scaleFactor;
+    
     console.log(`Using model scale: ${modelScale}`);
     
     // Apply scale
     modelClone.scale.set(modelScale, modelScale, modelScale);
     
     // Apply rotation to match ear orientation
-    // Flip the model horizontally based on which ear we're rendering for
+    // Fixed rotation values based on ear side and platform
     const rotationY = earPosition.isRightEar ? -Math.PI / 2 : Math.PI / 2;
-    
-    // Add slight tilt to match ear curvature - helps with visibility
     const rotationX = Math.PI * 0.05; // Slight downward tilt
-    const rotationZ = earPosition.isRightEar ? -Math.PI * 0.1 : Math.PI * 0.1; // Slight tilt toward face
+    // Tilt model slightly toward face - more for desktop, less for mobile
+    const rotationZ = earPosition.isRightEar ? 
+      (isMobile ? -Math.PI * 0.08 : -Math.PI * 0.12) : 
+      (isMobile ? Math.PI * 0.08 : Math.PI * 0.12);
     
     modelClone.rotation.set(rotationX, rotationY, rotationZ);
     
@@ -1106,50 +1196,50 @@ const renderRIC3DModel = async (
     renderer.render(scene, camera);
     console.log('3D model rendered to offscreen canvas');
     
-    // Calculate position to draw the rendered model
-    // Position behind ear where the main body should sit
-    // Adjust position more precisely for better anatomical placement
+    // FIXED POSITIONING LOGIC
+    // Use precise positioning based on platform and whether it's a close-up
+    let hearingAidX, hearingAidY;
     
-    // Calculate a position that ensures the receiver will end up in the ear canal
-    // and the body will be properly behind the ear
-    let hearingAidX = earPosition.behindEarPosition.x;
-    let hearingAidY = earPosition.behindEarPosition.y;
-    
-    // Make adjustments based on close-up vs standard images
-    if (isCloseUp) {
-      // For close-up images, position more carefully
+    if (isMobile) {
+      // MOBILE POSITIONING
+      // Position the hearing aid relative to the ear canal
+      const canalX = earPosition.canalPosition.x;
+      const canalY = earPosition.canalPosition.y;
+      
       if (earPosition.isRightEar) {
-        // For right ear
-        hearingAidX = earPosition.behindEarPosition.x - earPosition.width * 0.15;
+        // Right ear - position body behind ear
+        hearingAidX = canalX - earPosition.width * 0.4;
       } else {
-        // For left ear
-        hearingAidX = earPosition.behindEarPosition.x + earPosition.width * 0.15;
+        // Left ear - position body behind ear
+        hearingAidX = canalX + earPosition.width * 0.4;
       }
-      // Move slightly up to ensure receiver alignment
-      hearingAidY = earPosition.behindEarPosition.y - earPosition.height * 0.05;
+      // Position slightly above canal level
+      hearingAidY = canalY - earPosition.height * 0.1;
+      
     } else {
-      // For standard images
-      if (earPosition.isRightEar) {
-        hearingAidX = earPosition.behindEarPosition.x - earPosition.width * 0.2;
-      } else {
-        hearingAidX = earPosition.behindEarPosition.x + earPosition.width * 0.2;
-      }
-      hearingAidY = earPosition.behindEarPosition.y - earPosition.height * 0.1;
+      // DESKTOP POSITIONING 
+      // For desktop uploads, position consistently for left ear
+      // Position the hearing aid body behind the ear, with receiver extending to canal
+      const canalX = earPosition.canalPosition.x;
+      const canalY = earPosition.canalPosition.y;
+      
+      // Add offset to ensure receiver aligns with ear canal
+      hearingAidX = canalX + earPosition.width * 0.4; // Move right from canal for left ear
+      hearingAidY = canalY - earPosition.height * 0.05; // Slightly above canal
     }
     
     console.log(`Drawing at position: (${hearingAidX}, ${hearingAidY})`);
     
-    // Draw the rendered model onto the main canvas
-    // Draw larger to ensure visibility
-    const renderSize = 1024 * modelScale * 1.2; // Increased by 20% for better visibility
+    // Increase the render size for better visibility
+    const renderSize = 1024 * modelScale * 1.2;
     
-    // First, draw a subtle highlight behind to make it stand out from the ear
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    // First, draw a subtle highlight for contrast
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.beginPath();
     ctx.arc(hearingAidX, hearingAidY, renderSize / 3, 0, Math.PI * 2);
     ctx.fill();
     
-    // Now draw the model
+    // Draw the model
     ctx.drawImage(
       offscreenCanvas, 
       0, 0, 1024, 1024,
@@ -1159,27 +1249,11 @@ const renderRIC3DModel = async (
       renderSize
     );
     
-    // Debug: Draw dots at key anatomical points
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)'; // Green for canal
-    ctx.beginPath();
-    ctx.arc(earPosition.canalPosition.x, earPosition.canalPosition.y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.fillStyle = 'rgba(0, 0, 255, 0.5)'; // Blue for behind ear
-    ctx.beginPath();
-    ctx.arc(earPosition.behindEarPosition.x, earPosition.behindEarPosition.y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Yellow for helix
-    ctx.beginPath();
-    ctx.arc(earPosition.helixPosition.x, earPosition.helixPosition.y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    
     // Clean up
     scene.remove(modelClone);
     renderer.dispose();
     
-    // Add product label for non-mobile
+    // Add product label only for desktop
     if (!isMobile) {
       // Semi-transparent background
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
