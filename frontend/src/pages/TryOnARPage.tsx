@@ -16,6 +16,7 @@ const TryOnARPage: React.FC = () => {
   const [canvasInitialized, setCanvasInitialized] = useState(false);
   const [permissionRequested, setPermissionRequested] = useState(false);
   const [arError, setArError] = useState<string | null>(null);
+  const [videoAvailable, setVideoAvailable] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,6 +24,41 @@ const TryOnARPage: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const initTimeoutRef = useRef<number | null>(null);
+
+  const processVideoFrame = useCallback(() => {
+    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) {
+      return;
+    }
+    
+    try {
+      const video = videoRef.current;
+      const arCanvas = arCanvasRef.current;
+      const canvas = canvasRef.current;
+      
+      // Draw current video frame to the hidden canvas
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Get the frame data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Render AR overlay onto the visible canvas
+        renderAROverlay(imageData, arCanvas, hearingAidData, facingMode)
+          .catch(error => {
+            console.error('Error in renderAROverlay:', error);
+          });
+      }
+      
+      // Continue the processing loop
+      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+    } catch (error) {
+      console.error('Error in processVideoFrame:', error);
+      // Don't set error state here to avoid flooding UI with errors
+      // Just try to continue processing
+      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+    }
+  }, [hearingAidData, facingMode]);
 
   // Check and request permissions when the component mounts if on mobile
   useEffect(() => {
@@ -114,142 +150,205 @@ const TryOnARPage: React.FC = () => {
     }
   };
 
-  const startCamera = async () => {
+  const initializeCamera = useCallback(async () => {
     try {
-      setArError(null);
+      if (!videoRef.current) {
+        return;
+      }
+
+      // Clear any existing stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+
+      // Initialize canvas sizes with a safe default
+      if (canvasRef.current && arCanvasRef.current) {
+        canvasRef.current.width = 640;
+        canvasRef.current.height = 480;
+        arCanvasRef.current.width = 640;
+        arCanvasRef.current.height = 480;
+      }
+
+      // Get available video devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
       
-      // Set that we've requested permission
-      setPermissionRequested(true);
-      
-      const constraints = { 
-        video: { 
+      // If no video devices, show error
+      if (videoDevices.length === 0) {
+        setVideoAvailable(false);
+        setArError('No camera detected on your device.');
+        return;
+      }
+
+      // Request camera access with more specific constraints
+      const constraints: MediaStreamConstraints = {
+        video: {
           facingMode: facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
         audio: false
       };
-      
-      console.log('Requesting camera access with constraints:', constraints);
+
+      // Get camera stream
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('Camera access granted:', stream);
-      
       streamRef.current = stream;
       
+      // Check if video ref still exists (component not unmounted)
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Set up video element event handlers
         videoRef.current.onloadedmetadata = () => {
-          console.log('Video metadata loaded, initializing AR canvas');
-          videoRef.current?.play();
+          if (!videoRef.current) return;
           
-          // Use a timeout to ensure video is fully loaded and playing
-          initTimeoutRef.current = window.setTimeout(() => {
-            initARCanvas();
-          }, 500);
+          // Update canvas dimensions once video metadata is loaded
+          if (canvasRef.current && arCanvasRef.current) {
+            // Match canvas size to actual video dimensions for optimal rendering
+            const videoWidth = videoRef.current.videoWidth;
+            const videoHeight = videoRef.current.videoHeight;
+            
+            canvasRef.current.width = videoWidth;
+            canvasRef.current.height = videoHeight;
+            arCanvasRef.current.width = videoWidth;
+            arCanvasRef.current.height = videoHeight;
+          }
+          
+          // Start processing video frames
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+          animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+          
+          // Mark canvas as initialized
+          setCanvasInitialized(true);
         };
+        
+        // Handle video playing
+        videoRef.current.onplay = () => {
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+          animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+        };
+        
+        // Handle errors during video playback
+        videoRef.current.onerror = (e) => {
+          console.error('Video error:', e);
+          setArError('Error with camera video stream. Please try reloading.');
+        };
+        
+        // Force play the video (needed for some mobile browsers)
+        videoRef.current.play().catch(err => {
+          console.error('Error playing video:', err);
+          setArError('Could not start camera stream. Please check permissions and try again.');
+        });
       }
       
       setCameraPermission(true);
-    } catch (err) {
-      console.error('Error accessing camera:', err);
-      setCameraPermission(false);
-      setArError('Failed to access camera. Please check your camera permissions.');
-    }
-  };
-
-  const toggleCamera = () => {
-    setFacingMode(prevMode => prevMode === 'user' ? 'environment' : 'user');
-  };
-
-  useEffect(() => {
-    if (cameraPermission && permissionRequested) {
-      startCamera();
-    }
-  }, [facingMode, cameraPermission, permissionRequested]);
-
-  const initARCanvas = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !arCanvasRef.current) {
-      console.error('Missing required refs for AR canvas initialization');
-      setArError('Error initializing AR. Missing video or canvas elements.');
-      return;
-    }
-
-    if (!hearingAidData) {
-      console.error('Missing hearing aid data for AR canvas initialization');
-      setArError('Error initializing AR. Missing product data.');
-      return;
-    }
-    
-    const video = videoRef.current;
-    const arCanvas = arCanvasRef.current;
-    const canvas = canvasRef.current;
-    
-    console.log('Video dimensions:', video.videoWidth, video.videoHeight);
-    
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      // Try again when video dimensions are available
-      console.log('Video dimensions not available yet, retrying...');
-      initTimeoutRef.current = window.setTimeout(initARCanvas, 500);
-      return;
-    }
-    
-    try {
-      // Set canvas dimensions to match video
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      
-      arCanvas.width = width;
-      arCanvas.height = height;
-      canvas.width = width;
-      canvas.height = height;
-      
-      setCanvasInitialized(true);
-      
-      // Start AR processing loop
-      processVideoFrame();
     } catch (error) {
-      console.error('Error during AR canvas initialization:', error);
-      setArError('Failed to initialize AR view. Please try refreshing the page.');
-    }
-  }, [hearingAidData]);
-
-  const processVideoFrame = useCallback(() => {
-    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) {
-      return;
-    }
-    
-    try {
-      const video = videoRef.current;
-      const arCanvas = arCanvasRef.current;
-      const canvas = canvasRef.current;
+      console.error('Error initializing camera:', error);
       
-      // Draw current video frame to the hidden canvas
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Get the frame data
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        // Render AR overlay onto the visible canvas
-        renderAROverlay(imageData, arCanvas, hearingAidData, facingMode)
-          .catch(error => {
-            console.error('Error in renderAROverlay:', error);
-          });
+      if ((error as DOMException).name === 'NotAllowedError') {
+        setCameraPermission(false);
+      } else if ((error as DOMException).name === 'NotFoundError') {
+        setVideoAvailable(false);
+        setArError('Camera not found. Please ensure your device has a working camera.');
+      } else {
+        setArError(`Camera error: ${(error as Error).message || 'Unknown error'}`);
+      }
+    }
+  }, [facingMode, processVideoFrame]);
+
+  const requestCameraAccess = async () => {
+    try {
+      setPermissionRequested(true);
+      
+      // First check permissions status if available
+      if (navigator.permissions) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'camera' as any });
+          
+          if (permissionStatus.state === 'granted') {
+            setCameraPermission(true);
+            initializeCamera();
+            return;
+          } else if (permissionStatus.state === 'denied') {
+            setCameraPermission(false);
+            return;
+          }
+          // Otherwise continue to request
+        } catch (permError) {
+          console.log('Permissions API not fully supported, requesting directly');
+        }
       }
       
-      // Continue the processing loop
-      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+      // Request camera access - minimal request to trigger permission dialog
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: false 
+      });
+      
+      // If successful, stop this test stream and initialize the actual camera
+      stream.getTracks().forEach(track => track.stop());
+      
+      setCameraPermission(true);
+      
+      // Add a small delay before initializing camera
+      // This helps with some mobile browsers that need a moment after permission
+      setTimeout(() => {
+        initializeCamera();
+      }, 500);
     } catch (error) {
-      console.error('Error in processVideoFrame:', error);
-      // Don't set error state here to avoid flooding UI with errors
-      // Just try to continue processing
-      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+      console.error('Error requesting camera access:', error);
+      
+      if ((error as DOMException).name === 'NotAllowedError') {
+        setCameraPermission(false);
+      } else {
+        setArError(`Could not access camera: ${(error as Error).message || 'Unknown error'}`);
+      }
     }
-  }, [hearingAidData, facingMode]);
+  };
+
+  const toggleCamera = async () => {
+    // Set new facing mode
+    const newMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newMode);
+    
+    // Stop existing animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    // Stop all tracks on current stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    // Clear error state
+    setArError(null);
+    
+    // Re-initialize with new facing mode (using a slight delay for better switching)
+    setTimeout(() => {
+      initializeCamera();
+    }, 300);
+  };
+
+  const retryCamera = () => {
+    // Clear any existing error
+    setArError(null);
+    
+    // Reset permission if needed
+    if (cameraPermission === false) {
+      setPermissionRequested(false);
+      setCameraPermission(null);
+    } else {
+      // Just retry initialization
+      initializeCamera();
+    }
+  };
 
   const handleBack = () => {
     navigate(`/shop/product/${productId}`);
@@ -293,7 +392,7 @@ const TryOnARPage: React.FC = () => {
       <h2>Try On with Your Camera</h2>
       <p>We'll need access to your camera to show how the hearing aid looks on your ear.</p>
       <p className="permission-note">Please allow camera access when prompted by your browser.</p>
-      <button className="primary-button" onClick={startCamera}>
+      <button className="primary-button" onClick={requestCameraAccess}>
         Start Camera
       </button>
     </div>
@@ -317,6 +416,66 @@ const TryOnARPage: React.FC = () => {
     </div>
   );
 
+  const MobileExperience = () => (
+    <div className="mobile-experience">
+      {arError && (
+        <div className="camera-error">
+          <p>{arError}</p>
+          <button className="primary-button" onClick={retryCamera}>
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {!arError && cameraPermission === null ? (
+        renderPermissionRequest()
+      ) : !arError && cameraPermission === false ? (
+        renderPermissionDenied()
+      ) : !arError && !videoAvailable ? (
+        <div className="camera-error">
+          <p>No camera detected on your device.</p>
+          <p>You can still try our desktop experience by uploading a photo.</p>
+        </div>
+      ) : !arError && (
+        <div className="camera-view">
+          {/* Video element for camera stream */}
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            muted
+            className="camera-feed"
+          />
+          
+          {/* Hidden canvas for processing frames */}
+          <canvas 
+            ref={canvasRef}
+            className="processing-canvas hidden"
+          />
+          
+          {/* Visible canvas for AR overlay */}
+          <canvas 
+            ref={arCanvasRef}
+            className="ar-canvas"
+          />
+          
+          <div className="ar-controls">
+            <button className="camera-toggle" onClick={toggleCamera}>
+              Switch Camera
+            </button>
+            <button className="capture-button" onClick={saveProcessedImage}>
+              Capture
+            </button>
+          </div>
+          
+          <div className="positioning-guide">
+            <p>Position your ear in the center</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="try-on-page">
       <div className="try-on-content">
@@ -330,61 +489,7 @@ const TryOnARPage: React.FC = () => {
 
         <div className="try-on-container">
           {isMobile ? (
-            // Mobile Experience - Real-time AR
-            <div className="mobile-experience">
-              {arError && (
-                <div className="camera-error">
-                  <p>{arError}</p>
-                  <button className="primary-button" onClick={() => { setArError(null); window.location.reload(); }}>
-                    Try Again
-                  </button>
-                </div>
-              )}
-
-              {!arError && cameraPermission === null ? (
-                renderPermissionRequest()
-              ) : !arError && cameraPermission === false ? (
-                renderPermissionDenied()
-              ) : !arError && (
-                <div className="camera-view">
-                  {/* Video element for camera stream */}
-                  <video 
-                    ref={videoRef} 
-                    autoPlay 
-                    playsInline 
-                    muted
-                    className="camera-feed"
-                  />
-                  
-                  {/* Hidden canvas for processing frames */}
-                  <canvas 
-                    ref={canvasRef}
-                    className="processing-canvas hidden"
-                  />
-                  
-                  {/* Visible canvas for AR overlay */}
-                  <canvas 
-                    ref={arCanvasRef}
-                    className="ar-canvas"
-                  />
-                  
-                  <div className="ar-controls">
-                    <button className="camera-toggle" onClick={toggleCamera}>
-                      Switch Camera
-                    </button>
-                    <button className="capture-button" onClick={saveProcessedImage}>
-                      Capture
-                    </button>
-                  </div>
-                  
-                  <div className="ar-overlay">
-                    <div className="positioning-guide">
-                      <p>Position your ear in the center</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <MobileExperience />
           ) : (
             // Desktop Experience - Upload & Process
             <div className="desktop-experience">

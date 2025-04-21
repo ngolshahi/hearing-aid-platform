@@ -7,10 +7,16 @@ import java.awt.geom.Ellipse2D
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.util.*
 import javax.imageio.ImageIO
 import repository.HearingAidRepository
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
+import kotlinx.serialization.encodeToString
 
 /**
  * Data model for ear detection results
@@ -45,15 +51,26 @@ class ARService(
     // Cache hearing aid model data
     private val modelCache = mutableMapOf<String, HearingAidModelData>()
     
-    // Skin color ranges for different skin tones
+    // Skin color ranges for different skin tones - expanded to be more inclusive
     private val skinColorRanges = listOf(
         // Lighter skin tones
         SkinColorRange(180, 255, 130, 220, 100, 200),
         // Medium skin tones
         SkinColorRange(120, 220, 70, 170, 45, 150),
         // Darker skin tones
-        SkinColorRange(60, 160, 40, 120, 25, 100)
+        SkinColorRange(60, 160, 40, 120, 25, 100),
+        // Additional lighter skin tones
+        SkinColorRange(200, 255, 150, 255, 120, 255),
+        // Additional medium tones
+        SkinColorRange(140, 200, 85, 160, 60, 140),
+        // Additional darker tones
+        SkinColorRange(40, 120, 30, 100, 20, 80)
     )
+    
+    // HTTP client for Azure Vision API calls
+    private val httpClient = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_2)
+        .build()
     
     /**
      * Data class for skin color ranges
@@ -74,7 +91,7 @@ class ARService(
     fun processImage(base64Image: String, productId: String): String {
         try {
             // Decode base64 image
-            val imageBytes = Base64.getDecoder().decode(base64Image)
+            val imageBytes = Base64.getDecoder().decode(base64Image.trim())
             val inputStream = ByteArrayInputStream(imageBytes)
             val originalImage = ImageIO.read(inputStream)
             
@@ -86,9 +103,43 @@ class ARService(
             val hearingAid = hearingAidRepository.getHearingAidById(productId)
                 ?: throw IllegalArgumentException("Hearing aid with ID $productId not found")
             
-            // Detect ear in the image
-            val earRegion = detectEar(originalImage)
-                ?: throw IllegalArgumentException("No ear detected in the image")
+            // Try multiple ear detection methods
+            var earRegion: EarDetectionResult? = null
+            
+            // First try Azure Vision API if available
+            if (!azureVisionKey.isNullOrBlank() && !azureVisionEndpoint.isNullOrBlank()) {
+                try {
+                    earRegion = detectEarUsingAzure(originalImage)
+                } catch (e: Exception) {
+                    System.err.println("Azure Vision API detection failed: ${e.message}")
+                    // Fall back to local detection methods if Azure fails
+                }
+            }
+            
+            // If Azure failed or not available, try our improved local detection
+            if (earRegion == null) {
+                earRegion = detectEarWithMultipleSkinTones(originalImage)
+            }
+            
+            // If ear still not detected, try a simpler approach that just assumes an ear in the center
+            if (earRegion == null) {
+                // Last resort: just assume ear is in the center of the image
+                val centerX = originalImage.width / 2
+                val centerY = originalImage.height / 2
+                val assumedWidth = originalImage.width / 4  // assume ear takes up about 1/4 of the width
+                val assumedHeight = originalImage.height / 3  // and about 1/3 of the height
+                
+                earRegion = EarDetectionResult(
+                    x = centerX - assumedWidth / 2,
+                    y = centerY - assumedHeight / 2,
+                    width = assumedWidth,
+                    height = assumedHeight,
+                    confidence = 0.5  // mark this as a low-confidence guess
+                )
+                
+                // Log this as a fallback case
+                System.out.println("Using fallback center ear position (no ear detected)")
+            }
             
             // Create a copy of the original image for processing
             val processedImage = BufferedImage(
@@ -138,6 +189,76 @@ class ARService(
     }
     
     /**
+     * Detect ear using Azure Computer Vision API
+     */
+    private fun detectEarUsingAzure(image: BufferedImage): EarDetectionResult? {
+        if (azureVisionKey.isNullOrBlank() || azureVisionEndpoint.isNullOrBlank()) {
+            return null
+        }
+        
+        try {
+            // Convert image to bytes for API request
+            val outputStream = ByteArrayOutputStream()
+            ImageIO.write(image, "jpeg", outputStream)
+            val imageBytes = outputStream.toByteArray()
+            
+            // Create Azure Vision API request
+            val endpoint = "$azureVisionEndpoint/computervision/imageanalysis:analyze?api-version=2023-02-01-preview&features=objects"
+            
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/octet-stream")
+                .header("Ocp-Apim-Subscription-Key", azureVisionKey)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(imageBytes))
+                .build()
+            
+            // Send request to Azure
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            
+            if (response.statusCode() == 200) {
+                // Parse response to look for objects that might be ears
+                val jsonResponse = Json.parseToJsonElement(response.body()).jsonObject
+                
+                if (jsonResponse.containsKey("objects")) {
+                    val objects = jsonResponse["objects"]?.jsonArray ?: return null
+                    
+                    // Look for objects that might be ears (look for "ear", "face", or "head" in the tags)
+                    for (obj in objects) {
+                        val objData = obj.jsonObject
+                        val tags = objData["tags"]?.jsonArray?.map { it.jsonPrimitive.content } ?: continue
+                        
+                        // Check if any tags suggest this could be an ear
+                        val isEarRelated = tags.any { tag -> 
+                            tag.contains("ear", ignoreCase = true) || 
+                            tag.contains("face", ignoreCase = true) || 
+                            tag.contains("head", ignoreCase = true) 
+                        }
+                        
+                        if (isEarRelated) {
+                            // Extract bounding box
+                            val rectangle = objData["rectangle"]?.jsonObject ?: continue
+                            val x = rectangle["x"]?.jsonPrimitive?.int ?: continue
+                            val y = rectangle["y"]?.jsonPrimitive?.int ?: continue
+                            val w = rectangle["w"]?.jsonPrimitive?.int ?: continue
+                            val h = rectangle["h"]?.jsonPrimitive?.int ?: continue
+                            val confidence = objData["confidence"]?.jsonPrimitive?.double ?: 0.8
+                            
+                            return EarDetectionResult(x, y, w, h, confidence)
+                        }
+                    }
+                }
+            } else {
+                System.err.println("Azure Vision API error: ${response.statusCode()} - ${response.body()}")
+            }
+        } catch (e: Exception) {
+            System.err.println("Error using Azure Vision API: ${e.message}")
+            e.printStackTrace()
+        }
+        
+        return null
+    }
+    
+    /**
      * Improved ear detection using multiple skin tone ranges and shape analysis
      */
     private fun detectEarWithMultipleSkinTones(image: BufferedImage): EarDetectionResult? {
@@ -168,8 +289,8 @@ class ARService(
             }
         }
         
-        // Return null if not enough skin pixels found
-        if (earPixelCount < 200) {
+        // Return null if not enough skin pixels found - be more lenient
+        if (earPixelCount < 100) {
             return null
         }
         
@@ -188,14 +309,14 @@ class ARService(
         for (region in regions) {
             val aspectRatio = region.height.toFloat() / region.width.toFloat()
             
-            // Ears typically have aspect ratio ~1.3-2.5
-            if (aspectRatio < 0.8 || aspectRatio > 3.0 || region.width < 40) {
+            // More flexible ear aspect ratio criteria
+            if (aspectRatio < 0.6 || aspectRatio > 4.0 || region.width < 30) {
                 continue
             }
             
             // Score based on size and aspect ratio (larger is better, aspect ~1.5-2.0 is ideal)
             val sizeScore = region.width * region.height / 10000.0
-            val aspectScore = if (aspectRatio in 1.3..2.5) 1.0 else 0.5
+            val aspectScore = if (aspectRatio in 1.0..3.0) 1.0 else 0.5
             val totalScore = sizeScore * aspectScore
             
             if (totalScore > bestScore) {
