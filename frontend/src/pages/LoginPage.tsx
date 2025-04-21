@@ -170,47 +170,43 @@ const LoginPage: React.FC = () => {
               <p>Please check your email for a verification link</p>
             </div>
             
-            <div className="verification-message" style={{
-              marginBottom: '20px',
-              padding: '20px',
-              backgroundColor: '#f5f5f5',
-              borderRadius: '5px',
-              textAlign: 'center'
-            }}>
-              <p>We've sent a verification email to <strong>{verificationEmail}</strong></p>
-              <p>Please check your inbox and click the verification link to activate your account.</p>
+            <div className="verification-content">
+              <div className="verification-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4a90e2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2v-3.5"></path>
+                  <path d="M14 11l-4.5 4.5L8 14"></path>
+                  <path d="M18 9.8l-5.3 5.3-1.4-1.4"></path>
+                  <path d="M2 10h2"></path>
+                  <path d="M2 14h2"></path>
+                  <path d="M20 6h2"></path>
+                  <path d="M7 6h10"></path>
+                </svg>
+              </div>
+              
+              <p className="verification-message">
+                We've sent a verification email to <strong>{verificationEmail}</strong>
+              </p>
+              
+              <p className="verification-instructions">
+                Please check your inbox and click the verification link to activate your account.
+              </p>
               
               {verificationMessage && (
-                <div style={{ 
-                  marginTop: '10px', 
-                  padding: '10px', 
-                  backgroundColor: verificationMessage.includes('success') ? '#e6f7e6' : '#ffebeb',
-                  borderRadius: '4px'
-                }}>
+                <div className={`verification-status ${verificationMessage.includes('success') ? 'success' : 'error'}`}>
                   {verificationMessage}
                 </div>
               )}
               
-              <div style={{ marginTop: '20px' }}>
+              <div className="verification-actions">
                 <p>Didn't receive the email?</p>
                 <button 
                   onClick={handleResendVerification}
                   disabled={resendingVerification}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    opacity: resendingVerification ? 0.7 : 1
-                  }}
+                  className="submit-button"
                 >
                   {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
                 </button>
-              </div>
-              
-              <div style={{ marginTop: '20px' }}>
+                
                 <button
                   onClick={() => {
                     setNeedsVerification(false);
@@ -223,19 +219,22 @@ const LoginPage: React.FC = () => {
                       lastName: '',
                     });
                   }}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
+                  className="secondary-button"
                 >
                   Back to Login
                 </button>
               </div>
+            </div>
+          </div>
+            
+          <div className="auth-image">
+            <img 
+              src="/images/auth-image.png" 
+              alt="Person wearing a hearing aid" 
+            />
+            <div className="image-overlay">
+              <h2>One Step Closer to Better Hearing</h2>
+              <p>Complete your email verification to unlock all features of our platform.</p>
             </div>
           </div>
         </div>

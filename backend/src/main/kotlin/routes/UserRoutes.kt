@@ -1,6 +1,7 @@
 package routes
 
 import services.AuthService
+import services.PendingUser
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -34,18 +35,22 @@ fun Route.userRoutes() {
                 
                 println("Registration attempt for: ${userRequest.email}")
                 
-                // Create a user in your database with validation
-                val (user, message) = authService.registerUser(
+                // Create a pending user in the database with validation
+                val (pendingUser, message) = authService.registerUser(
                     "${userRequest.firstName} ${userRequest.lastName}", 
                     userRequest.email, 
                     userRequest.password
                 )
                 
-                if (user != null) {
-                    println("User registered successfully: ${userRequest.email}")
+                if (pendingUser != null) {
+                    println("Pending user created for: ${pendingUser.email}")
                     call.respond(
                         HttpStatusCode.Created, 
-                        UserRegistrationResponse(user = user, message = message)
+                        UserRegistrationResponse(
+                            // Don't send the actual user object since it's not created yet
+                            user = null,
+                            message = message
+                        )
                     )
                 } else {
                     println("Registration failed for ${userRequest.email}: $message")
