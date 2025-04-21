@@ -48,13 +48,17 @@
   font-size: 1.2rem;
 }
 
-/* Update existing mobile experience styles */
+/* Mobile Experience with AR */
 .mobile-experience {
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   padding: 2rem;
   height: calc(100vh - 300px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
 }
 
 .camera-permission {
@@ -77,9 +81,102 @@
   line-height: 1.6;
 }
 
-/* Update desktop experience styles */
+.camera-view {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.camera-feed,
+.processing-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hidden {
+  display: none;
+}
+
+.ar-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 2;
+}
+
+.ar-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  z-index: 10;
+}
+
+.camera-toggle,
+.capture-button {
+  background-color: rgba(44, 82, 130, 0.8);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.camera-toggle:hover,
+.capture-button:hover {
+  background-color: rgba(44, 82, 130, 1);
+  transform: translateY(-2px);
+}
+
+.capture-button {
+  background-color: rgba(220, 38, 38, 0.8);
+}
+
+.capture-button:hover {
+  background-color: rgba(220, 38, 38, 1);
+}
+
+.ar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.positioning-guide {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  margin: 0 auto;
+  width: fit-content;
+}
+
+/* Desktop Experience with Image Upload */
 .desktop-experience {
-  background: transparent;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
   gap: 2rem;
   max-width: 1000px;
   margin: 0 auto;
@@ -97,11 +194,24 @@
   border-radius: 12px;
   padding: 3rem 2rem;
   transition: all 0.3s ease;
+  cursor: pointer;
+  text-align: center;
 }
 
 .upload-area:hover {
   border-color: #2c5282;
   background-color: rgba(44, 82, 130, 0.02);
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
 }
 
 .upload-content h2 {
@@ -116,6 +226,97 @@
   margin-bottom: 1.5rem;
 }
 
+.hidden-input {
+  display: none;
+}
+
+/* Image Comparison View */
+.preview-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.image-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.original-image,
+.processed-image {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.original-image h3,
+.processed-image h3 {
+  font-size: 1rem;
+  color: #4a5568;
+  margin: 0;
+  text-align: center;
+}
+
+.image-preview {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.processing-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.processing-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(44, 82, 130, 0.3);
+  border-radius: 50%;
+  border-top-color: #2c5282;
+  animation: spin 1s linear infinite;
+}
+
+.processing-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #e53e3e;
+  text-align: center;
+  padding: 1rem;
+}
+
+.preview-controls {
+  display: flex;
+  gap: 1rem;
+}
+
 .upload-button,
 .primary-button,
 .secondary-button {
@@ -125,12 +326,14 @@
   font-weight: 600;
   font-size: 1rem;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .primary-button {
   background: #2c5282;
   color: white;
   border: none;
+  flex: 1;
 }
 
 .primary-button:hover {
@@ -142,10 +345,23 @@
   background: transparent;
   border: 2px solid #2c5282;
   color: #2c5282;
+  flex: 1;
 }
 
 .secondary-button:hover {
   background: rgba(44, 82, 130, 0.08);
+  transform: translateY(-1px);
+}
+
+.upload-button {
+  background: #2c5282;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+}
+
+.upload-button:hover {
+  background: #2a4365;
   transform: translateY(-1px);
 }
 
@@ -163,6 +379,12 @@
   font-weight: 600;
 }
 
+.instructions ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
 .instructions li {
   color: #4a5568;
   padding: 1rem 0;
@@ -173,7 +395,34 @@
   font-size: 0.95rem;
 }
 
-/* Update mobile responsive styles */
+.instructions li:last-child {
+  border-bottom: none;
+}
+
+.instructions li::before {
+  content: "✓";
+  color: #2c5282;
+  font-weight: bold;
+}
+
+/* Camera error message */
+.camera-error {
+  background-color: #fed7d7;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile responsive styles */
 @media (max-width: 768px) {
   .try-on-content {
     padding: 1rem;
@@ -198,6 +447,26 @@
 
   .desktop-experience {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .image-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-controls {
+    flex-direction: column;
+  }
+
+  .ar-controls {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .camera-toggle,
+  .capture-button {
+    width: 80%;
   }
 
   .instructions {
@@ -205,16 +474,17 @@
   }
 }
 
-/* Keep existing animation and accessibility styles */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .processing-spinner {
     animation: none;
+  }
+
+  .primary-button:hover,
+  .secondary-button:hover,
+  .upload-button:hover,
+  .camera-toggle:hover,
+  .capture-button:hover {
+    transform: none;
   }
 } 
