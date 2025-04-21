@@ -29,15 +29,10 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:$kotlin_version")
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("com.azure:azure-cosmos:4.9.0")
-    implementation("com.azure:azure-core:1.37.0")
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.2.4")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$kotlin_version")
     implementation("org.mindrot:jbcrypt:0.4")
-    
-    // Jackson for handling Java 8 date/time types
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.0")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.0")
     
     // Email dependencies
     implementation("com.sun.mail:javax.mail:1.6.2")

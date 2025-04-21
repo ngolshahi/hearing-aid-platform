@@ -81,9 +81,6 @@ class EmailService {
                         .content { padding: 20px; background-color: #f9f9f9; }
                         .otp { font-size: 32px; font-weight: bold; text-align: center; color: #2c5282; 
                                letter-spacing: 5px; margin: 20px 0; }
-                        .verify-button { background-color: #2c5282; color: white; padding: 12px 20px; 
-                                       text-decoration: none; border-radius: 4px; font-weight: bold; 
-                                       display: inline-block; margin: 20px 0; }
                         .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
                     </style>
                 </head>
@@ -96,12 +93,7 @@ class EmailService {
                             <p>Hello,</p>
                             <p>Thank you for registering with $appName. To complete your registration, please use the following verification code:</p>
                             <div class="otp">$otp</div>
-                            <p>Or click the button below to verify your email:</p>
-                            <div style="text-align: center;">
-                                <a href="${dotenv["APP_URL"] ?: "http://localhost:3000"}/verify?email=${email}&token=${otp}" class="verify-button" style="color: white;">
-                                    Verify Email
-                                </a>
-                            </div>
+                            <p>Enter this code in the registration form to verify your email address.</p>
                             <p>This code will expire in 1 hour.</p>
                             <p>If you did not request this verification, please ignore this email.</p>
                         </div>

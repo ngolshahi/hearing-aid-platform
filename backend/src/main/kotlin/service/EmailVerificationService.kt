@@ -1,12 +1,13 @@
 package service
 
+import config.DatabaseConfig
 import model.VerificationToken
-import repository.VerificationTokenRepository
 import java.time.Instant
 import java.util.UUID
+import com.azure.cosmos.models.PartitionKey
 
 class EmailVerificationService {
-    private val repository = VerificationTokenRepository()
+    private val container = DatabaseConfig.getVerificationTokensContainer()
     
     fun createVerificationToken(email: String): VerificationToken {
         val token = UUID.randomUUID().toString()
@@ -18,29 +19,28 @@ class EmailVerificationService {
             expiryDate = expiryDate
         )
         
-        // Store in Cosmos DB using our custom repository
-        repository.save(verificationToken)
+        // Store in Cosmos DB
+        container.createItem(verificationToken)
         
         return verificationToken
     }
     
     fun verifyToken(email: String, token: String): Boolean {
-        val verificationToken = repository.findByEmailAndToken(email, token) ?: return false
+        val query = "SELECT * FROM c WHERE c.email = '$email' AND c.token = '$token' AND c.expiryDate > ${Instant.now().epochSecond}"
         
-        // Check if token is expired
-        if (Instant.now().isAfter(verificationToken.expiryDate)) {
-            return false
-        }
+        val results = container.queryItems(query, null, VerificationToken::class.java)
+        val verificationToken = results.firstOrNull() ?: return false
         
         // Mark as verified
         val updatedToken = verificationToken.copy(verified = true)
-        repository.update(updatedToken)
+        container.replaceItem(updatedToken, updatedToken.id, PartitionKey(updatedToken.id), null)
         
         return true
     }
     
     fun isEmailVerified(email: String): Boolean {
-        val verificationTokens = repository.findByEmail(email)
-        return verificationTokens.any { it.verified }
+        val query = "SELECT * FROM c WHERE c.email = '$email' AND c.verified = true"
+        val results = container.queryItems(query, null, VerificationToken::class.java)
+        return results.any()
     }
 } 

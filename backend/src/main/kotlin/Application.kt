@@ -1,7 +1,5 @@
 package com.example.com
 
-import config.JacksonConfig
-import config.JacksonInitializer
 import config.appSerializersModule
 import io.ktor.server.application.*
 import io.ktor.server.plugins.cors.routing.*
@@ -12,10 +10,6 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
 fun main(args: Array<String>) {
-    // Initialize Jackson configuration for Azure CosmosDB
-    JacksonConfig.getConfiguredSerializer()
-    JacksonInitializer.initialize()
-    
     io.ktor.server.netty.EngineMain.main(args)
 }
 
