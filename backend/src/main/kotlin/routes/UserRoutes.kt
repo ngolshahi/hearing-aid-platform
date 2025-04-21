@@ -22,6 +22,8 @@ fun Route.userRoutes() {
             try {
                 val userRequest = call.receive<UserRequest>()
                 
+                println("Registration attempt for: ${userRequest.email}")
+                
                 // Create a user in your database with validation
                 val (user, message) = authService.registerUser(
                     "${userRequest.firstName} ${userRequest.lastName}", 
@@ -30,14 +32,18 @@ fun Route.userRoutes() {
                 )
                 
                 if (user != null) {
+                    println("User registered successfully: ${userRequest.email}")
                     call.respond(HttpStatusCode.Created, mapOf(
                         "user" to user,
                         "message" to message
                     ))
                 } else {
+                    println("Registration failed for ${userRequest.email}: $message")
                     call.respond(HttpStatusCode.BadRequest, mapOf("message" to message))
                 }
             } catch (e: Exception) {
+                println("Exception during registration: ${e.message}")
+                e.printStackTrace()
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to register: ${e.message}"))
             }
         }
