@@ -5,10 +5,6 @@ import com.azure.cosmos.CosmosClientBuilder
 import com.azure.cosmos.CosmosContainer
 import com.azure.cosmos.CosmosDatabase
 import com.azure.cosmos.ConsistencyLevel
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.github.cdimascio.dotenv.Dotenv
 
 object DatabaseConfig {
@@ -34,11 +30,14 @@ object DatabaseConfig {
         throw IllegalArgumentException("Audiologists container name is missing")
     val verificationTokensContainer: String = dotenv["VERIFICATION_TOKENS_CONTAINER"] ?: "verification-tokens"
 
-    // Configure Jackson ObjectMapper for Java 8 date/time types
-    private val objectMapper = ObjectMapper().apply {
-        registerModule(JavaTimeModule())
-        disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    // Set up the serializer adapter with our custom Jackson configuration
+    // This is used internally by the Cosmos client
+    init {
+        // Register the JavaTimeModule with the default serializer
+        System.setProperty("azure.cosmos.serialization.adapter", "com.azure.core.util.serializer.JacksonAdapter")
+        // This will be used by the JacksonAdapter internally
+        com.azure.core.util.Configuration.getGlobalConfiguration()
+            .put("azure.cosmos.serialization.adapter", "com.azure.core.util.serializer.JacksonAdapter")
     }
 
     // Create a Cosmos client using the provided credentials
@@ -46,14 +45,7 @@ object DatabaseConfig {
         .endpoint(cosmosDbUri)
         .key(cosmosDbKey)
         .consistencyLevel(ConsistencyLevel.EVENTUAL)
-        .clientTelemetryConfig(null) // Disable telemetry for better performance
         .contentResponseOnWriteEnabled(true)
-        .jsonSerializer { 
-            objectMapper.writeValueAsBytes(it)
-        }
-        .jsonDeserializer {
-            objectMapper.readTree(it)
-        }
         .buildClient()
 
     // Initialize the CosmosDatabase

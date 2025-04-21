@@ -2,6 +2,10 @@ package repository
 
 import com.azure.cosmos.CosmosContainer
 import com.azure.cosmos.models.PartitionKey
+import com.azure.cosmos.models.CosmosQueryRequestOptions
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import config.DatabaseConfig
 import model.VerificationToken
 import java.time.Instant
@@ -9,6 +13,12 @@ import java.util.UUID
 
 class VerificationTokenRepository {
     private val container: CosmosContainer = DatabaseConfig.getVerificationTokensContainer()
+    
+    // Custom ObjectMapper for handling Java 8 date/time types
+    private val objectMapper = ObjectMapper().apply {
+        registerModule(JavaTimeModule())
+        disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    }
     
     /**
      * Create a new verification token
@@ -97,5 +107,85 @@ class VerificationTokenRepository {
         }
         
         return false
+    }
+    
+    /**
+     * Save a verification token to the database
+     */
+    fun save(token: VerificationToken) {
+        // Convert to JSON string for reliable serialization
+        val jsonString = objectMapper.writeValueAsString(token)
+        // Convert back to a Map for CosmosDB
+        val jsonMap = objectMapper.readValue(jsonString, Map::class.java)
+        
+        container.createItem(jsonMap)
+    }
+    
+    /**
+     * Find a token by email and token string
+     */
+    fun findByEmailAndToken(email: String, token: String): VerificationToken? {
+        val sql = "SELECT * FROM c WHERE c.email = @email AND c.token = @token"
+        val params = listOf(
+            "email" to email,
+            "token" to token
+        )
+        
+        val querySpec = com.azure.cosmos.models.SqlQuerySpec(sql)
+        params.forEachIndexed { index, (name, value) ->
+            querySpec.parameters.add(com.azure.cosmos.models.SqlParameter("@$name", value))
+        }
+        
+        val options = CosmosQueryRequestOptions()
+        
+        val results = container.queryItems(querySpec, options, Map::class.java)
+            .stream()
+            .toList()
+            
+        if (results.isEmpty()) {
+            return null
+        }
+        
+        // Convert map to JSON string then to VerificationToken to ensure proper deserialization
+        val jsonString = objectMapper.writeValueAsString(results[0])
+        return objectMapper.readValue(jsonString, VerificationToken::class.java)
+    }
+    
+    /**
+     * Find verification tokens by email
+     */
+    fun findByEmail(email: String): List<VerificationToken> {
+        val sql = "SELECT * FROM c WHERE c.email = @email"
+        val querySpec = com.azure.cosmos.models.SqlQuerySpec(sql)
+        querySpec.parameters.add(com.azure.cosmos.models.SqlParameter("@email", email))
+        
+        val options = CosmosQueryRequestOptions()
+        
+        val results = container.queryItems(querySpec, options, Map::class.java)
+            .stream()
+            .toList()
+            
+        // Convert maps to JSON strings then to VerificationToken objects
+        return results.map { 
+            val jsonString = objectMapper.writeValueAsString(it)
+            objectMapper.readValue(jsonString, VerificationToken::class.java)
+        }
+    }
+    
+    /**
+     * Update a verification token
+     */
+    fun update(token: VerificationToken) {
+        // Convert to JSON string for reliable serialization
+        val jsonString = objectMapper.writeValueAsString(token)
+        // Convert back to a Map for CosmosDB
+        val jsonMap = objectMapper.readValue(jsonString, Map::class.java)
+        
+        container.replaceItem(
+            jsonMap, 
+            token.id, 
+            PartitionKey(token.email), 
+            null
+        )
     }
 } 
