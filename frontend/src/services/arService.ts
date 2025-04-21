@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { HearingAid } from './hearingAidService';
 
-// Adjust this URL based on where your backend is running
-const API_URL = 'http://localhost:8080/api';
+// Adjust this URL based on where your backend is running - should match hearingAidService.ts
+const API_URL = 'http://192.168.0.244:8080/api';
 
 // Cache for hearing aid 3D models and textures
 const modelCache: Record<string, any> = {};

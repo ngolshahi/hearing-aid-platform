@@ -40,8 +40,15 @@ fun Application.configureRouting() {
     
     // Initialize AR Service - Azure key parameters are not used anymore but kept for backward compatibility
     val hearingAidRepository = HearingAidRepository()
-    val azureVisionKey = environment.config.propertyOrNull("azure.vision.key")?.getString()
-    val azureVisionEndpoint = environment.config.propertyOrNull("azure.vision.endpoint")?.getString()
+    
+    // Get vision configuration but use null for dummy values
+    val azureVisionKey = environment.config.propertyOrNull("azure.vision.key")?.getString()?.let { 
+        if (it == "dummy-key") null else it 
+    }
+    val azureVisionEndpoint = environment.config.propertyOrNull("azure.vision.endpoint")?.getString()?.let {
+        if (it == "https://dummy-endpoint.cognitiveservices.azure.com/") null else it
+    }
+    
     val arService = ARService(hearingAidRepository, azureVisionKey, azureVisionEndpoint)
     val arController = ARController(arService)
     
