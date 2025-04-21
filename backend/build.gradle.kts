@@ -38,6 +38,13 @@ dependencies {
     implementation("com.sun.mail:javax.mail:1.6.2")
     implementation("javax.activation:activation:1.1.1")
     
+    // Azure Computer Vision dependencies
+    implementation("com.azure:azure-ai-vision-imageanalysis:1.0.0-beta.1")
+    implementation("com.azure:azure-core:1.44.1")
+    
+    // Image processing
+    implementation("org.imgscalr:imgscalr-lib:4.2")
+    
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     implementation("io.ktor:ktor-server-cors:$kotlin_version")
