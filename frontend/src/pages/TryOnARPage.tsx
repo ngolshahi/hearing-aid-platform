@@ -1,33 +1,78 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/TryOnARPage.css';
+import { getHearingAidById } from '../services/hearingAidService';
+import { processARImage, renderAROverlay } from '../services/arService';
 
 const TryOnARPage: React.FC = () => {
   const navigate = useNavigate();
   const { productId } = useParams();
   const [isMobile, setIsMobile] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [hearingAidData, setHearingAidData] = useState<any>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const arCanvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  // Fetch product data on component mount
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (productId) {
+        try {
+          const product = await getHearingAidById(productId);
+          setHearingAidData(product);
+        } catch (error) {
+          console.error('Error fetching product data:', error);
+        }
+      }
+    };
+
+    fetchProductData();
+  }, [productId]);
 
   useEffect(() => {
     // Check if device is mobile
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   }, []);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Clean up resources when component unmounts
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string);
+      reader.onload = async (e) => {
+        const imageDataUrl = e.target?.result as string;
+        setUploadedImage(imageDataUrl);
         setIsProcessing(true);
-        // Simulate processing time
-        setTimeout(() => {
+        
+        try {
+          // Process the image to overlay the hearing aid
+          const result = await processARImage(imageDataUrl, productId || '');
+          setProcessedImage(result);
+        } catch (error) {
+          console.error('Error processing image:', error);
+        } finally {
           setIsProcessing(false);
-        }, 2000);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -35,12 +80,28 @@ const TryOnARPage: React.FC = () => {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
+      const constraints = { 
+        video: { 
+          facingMode: facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          initARCanvas();
+        };
       }
+      
       setCameraPermission(true);
     } catch (err) {
       console.error('Error accessing camera:', err);
@@ -48,12 +109,79 @@ const TryOnARPage: React.FC = () => {
     }
   };
 
+  const toggleCamera = () => {
+    setFacingMode(prevMode => prevMode === 'user' ? 'environment' : 'user');
+  };
+
+  useEffect(() => {
+    if (cameraPermission) {
+      startCamera();
+    }
+  }, [facingMode]);
+
+  const initARCanvas = useCallback(() => {
+    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) return;
+    
+    const video = videoRef.current;
+    const arCanvas = arCanvasRef.current;
+    const canvas = canvasRef.current;
+    
+    // Set canvas dimensions to match video
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    
+    arCanvas.width = width;
+    arCanvas.height = height;
+    canvas.width = width;
+    canvas.height = height;
+    
+    setCanvasInitialized(true);
+    
+    // Start AR processing loop
+    processVideoFrame();
+  }, [hearingAidData]);
+
+  const processVideoFrame = useCallback(() => {
+    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) return;
+    
+    const video = videoRef.current;
+    const arCanvas = arCanvasRef.current;
+    const canvas = canvasRef.current;
+    
+    // Draw current video frame to the hidden canvas
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Get the frame data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Render AR overlay onto the visible canvas
+      renderAROverlay(imageData, arCanvas, hearingAidData, facingMode);
+    }
+    
+    // Continue the processing loop
+    animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+  }, [hearingAidData, facingMode]);
+
   const handleBack = () => {
     navigate(`/shop/product/${productId}`);
   };
 
   const triggerFileUpload = () => {
     fileInputRef.current?.click();
+  };
+
+  const saveProcessedImage = () => {
+    if (processedImage) {
+      // Create temporary link element to download the image
+      const link = document.createElement('a');
+      link.href = processedImage;
+      link.download = `hearing-aid-tryout-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -69,7 +197,7 @@ const TryOnARPage: React.FC = () => {
 
         <div className="try-on-container">
           {isMobile ? (
-            // Mobile Experience
+            // Mobile Experience - Real-time AR
             <div className="mobile-experience">
               {cameraPermission === null ? (
                 <div className="camera-permission">
@@ -85,12 +213,38 @@ const TryOnARPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="camera-view">
+                  {/* Hidden video element for camera stream */}
                   <video 
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
-                    className="camera-feed"
+                    muted
+                    className="camera-feed hidden"
                   />
+                  
+                  {/* Hidden canvas for processing frames */}
+                  <canvas 
+                    ref={canvasRef}
+                    className="processing-canvas hidden"
+                  />
+                  
+                  {/* Visible canvas for AR overlay */}
+                  <canvas 
+                    ref={arCanvasRef}
+                    className="ar-canvas"
+                  />
+                  
+                  <div className="ar-controls">
+                    <button className="camera-toggle" onClick={toggleCamera}>
+                      Switch Camera
+                    </button>
+                    {canvasInitialized && (
+                      <button className="capture-button" onClick={saveProcessedImage}>
+                        Capture
+                      </button>
+                    )}
+                  </div>
+                  
                   <div className="ar-overlay">
                     <div className="positioning-guide">
                       <p>Position your ear in the center</p>
@@ -100,7 +254,7 @@ const TryOnARPage: React.FC = () => {
               )}
             </div>
           ) : (
-            // Desktop Experience
+            // Desktop Experience - Upload & Process
             <div className="desktop-experience">
               <div className="upload-section">
                 {!uploadedImage ? (
@@ -124,16 +278,34 @@ const TryOnARPage: React.FC = () => {
                     />
                   </>
                 ) : (
-                  <div className="preview-section">
-                    <div className="image-preview">
-                      <img src={uploadedImage} alt="Uploaded ear" />
-                      {isProcessing && (
-                        <div className="processing-overlay">
-                          <div className="processing-spinner"></div>
-                          <p>Processing your image...</p>
+                  <div className="preview-container">
+                    <div className="image-comparison">
+                      <div className="original-image">
+                        <h3>Original</h3>
+                        <div className="image-preview">
+                          <img src={uploadedImage} alt="Uploaded ear" />
                         </div>
-                      )}
+                      </div>
+                      
+                      <div className="processed-image">
+                        <h3>With Hearing Aid</h3>
+                        <div className="image-preview">
+                          {isProcessing ? (
+                            <div className="processing-overlay">
+                              <div className="processing-spinner"></div>
+                              <p>Processing your image...</p>
+                            </div>
+                          ) : processedImage ? (
+                            <img src={processedImage} alt="Ear with hearing aid" />
+                          ) : (
+                            <div className="processing-error">
+                              <p>Processing failed. Please try a different image.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                    
                     <div className="preview-controls">
                       <button 
                         className="secondary-button"
@@ -141,9 +313,14 @@ const TryOnARPage: React.FC = () => {
                       >
                         Try Another Photo
                       </button>
-                      <button className="primary-button">
-                        Save Image
-                      </button>
+                      {processedImage && (
+                        <button 
+                          className="primary-button"
+                          onClick={saveProcessedImage}
+                        >
+                          Save Image
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
