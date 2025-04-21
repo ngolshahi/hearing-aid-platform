@@ -15,12 +15,41 @@ const TryOnARPage: React.FC = () => {
   const [hearingAidData, setHearingAidData] = useState<any>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [canvasInitialized, setCanvasInitialized] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const arCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+
+  // Check and request permissions when the component mounts if on mobile
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        // First check if permissions API is available
+        if (navigator.permissions) {
+          const result = await navigator.permissions.query({ name: 'camera' as any });
+          
+          if (result.state === 'granted') {
+            setCameraPermission(true);
+            setPermissionRequested(true);
+          } else if (result.state === 'prompt') {
+            setCameraPermission(null);
+          } else if (result.state === 'denied') {
+            setCameraPermission(false);
+            setPermissionRequested(true);
+          }
+        }
+      } catch (error) {
+        console.log('Permission API not supported, will request directly when needed');
+      }
+    };
+
+    if (isMobile) {
+      checkPermissions();
+    }
+  }, [isMobile]);
 
   // Fetch product data on component mount
   useEffect(() => {
@@ -84,20 +113,29 @@ const TryOnARPage: React.FC = () => {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
       
+      // Set that we've requested permission
+      setPermissionRequested(true);
+      
       const constraints = { 
         video: { 
           facingMode: facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        } 
+        },
+        audio: false
       };
       
+      console.log('Requesting camera access with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('Camera access granted:', stream);
+      
       streamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded, initializing AR canvas');
+          videoRef.current?.play();
           initARCanvas();
         };
       }
@@ -114,17 +152,28 @@ const TryOnARPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (cameraPermission) {
+    if (cameraPermission && permissionRequested) {
       startCamera();
     }
-  }, [facingMode]);
+  }, [facingMode, cameraPermission, permissionRequested]);
 
   const initARCanvas = useCallback(() => {
-    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) return;
+    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) {
+      console.log('Missing required refs for AR canvas initialization');
+      return;
+    }
     
     const video = videoRef.current;
     const arCanvas = arCanvasRef.current;
     const canvas = canvasRef.current;
+    
+    console.log('Video dimensions:', video.videoWidth, video.videoHeight);
+    
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      // Try again when video dimensions are available
+      setTimeout(initARCanvas, 100);
+      return;
+    }
     
     // Set canvas dimensions to match video
     const width = video.videoWidth;
@@ -173,8 +222,20 @@ const TryOnARPage: React.FC = () => {
   };
 
   const saveProcessedImage = () => {
+    // For mobile: capture the current canvas state
+    if (isMobile && arCanvasRef.current) {
+      const dataUrl = arCanvasRef.current.toDataURL('image/jpeg', 0.9);
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `hearing-aid-tryout-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+    
+    // For desktop: use the already processed image
     if (processedImage) {
-      // Create temporary link element to download the image
       const link = document.createElement('a');
       link.href = processedImage;
       link.download = `hearing-aid-tryout-${Date.now()}.jpg`;
@@ -183,6 +244,35 @@ const TryOnARPage: React.FC = () => {
       document.body.removeChild(link);
     }
   };
+
+  const renderPermissionRequest = () => (
+    <div className="camera-permission">
+      <h2>Try On with Your Camera</h2>
+      <p>We'll need access to your camera to show how the hearing aid looks on your ear.</p>
+      <p className="permission-note">Please allow camera access when prompted by your browser.</p>
+      <button className="primary-button" onClick={startCamera}>
+        Start Camera
+      </button>
+    </div>
+  );
+
+  const renderPermissionDenied = () => (
+    <div className="camera-error">
+      <p>Camera access denied. Please enable camera access in your browser settings.</p>
+      <div className="permission-instructions">
+        <h3>How to enable camera access:</h3>
+        <ul>
+          <li>Click on the padlock or info icon in your browser's address bar</li>
+          <li>Select "Site settings" or "Permissions"</li>
+          <li>Enable access to your camera</li>
+          <li>Reload this page</li>
+        </ul>
+        <button className="primary-button" onClick={() => window.location.reload()}>
+          Reload Page
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="try-on-page">
@@ -200,26 +290,18 @@ const TryOnARPage: React.FC = () => {
             // Mobile Experience - Real-time AR
             <div className="mobile-experience">
               {cameraPermission === null ? (
-                <div className="camera-permission">
-                  <h2>Try On with Your Camera</h2>
-                  <p>We'll need access to your camera to show how the hearing aid looks on your ear.</p>
-                  <button className="primary-button" onClick={startCamera}>
-                    Start Camera
-                  </button>
-                </div>
+                renderPermissionRequest()
               ) : cameraPermission === false ? (
-                <div className="camera-error">
-                  <p>Camera access denied. Please enable camera access in your browser settings.</p>
-                </div>
+                renderPermissionDenied()
               ) : (
                 <div className="camera-view">
-                  {/* Hidden video element for camera stream */}
+                  {/* Video element for camera stream */}
                   <video 
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
                     muted
-                    className="camera-feed hidden"
+                    className="camera-feed"
                   />
                   
                   {/* Hidden canvas for processing frames */}
@@ -238,11 +320,9 @@ const TryOnARPage: React.FC = () => {
                     <button className="camera-toggle" onClick={toggleCamera}>
                       Switch Camera
                     </button>
-                    {canvasInitialized && (
-                      <button className="capture-button" onClick={saveProcessedImage}>
-                        Capture
-                      </button>
-                    )}
+                    <button className="capture-button" onClick={saveProcessedImage}>
+                      Capture
+                    </button>
                   </div>
                   
                   <div className="ar-overlay">
