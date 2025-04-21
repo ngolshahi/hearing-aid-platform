@@ -9,5 +9,5 @@ ktor:
 azure:
     vision:
         # Replace these placeholder values with your actual Azure Computer Vision API keys
-        key: ${AZURE_VISION_KEY}
-        endpoint: ${AZURE_VISION_ENDPOINT}
+        key: ${1Oj4uI2OtyNZmUil8D2FI2BhB4wXeORd5btA3FdhfnFMMZ1qWNTpJQQJ99BDACmepeSXJ3w3AAAFACOGJ2Eq}
+        endpoint: ${https://hearing-aid-vision.cognitiveservices.azure.com/}
