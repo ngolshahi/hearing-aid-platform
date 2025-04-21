@@ -11,10 +11,6 @@ import java.util.*
 import javax.imageio.ImageIO
 import repository.HearingAidRepository
 import kotlinx.serialization.Serializable
-import com.azure.ai.vision.imageanalysis.ImageAnalysisClient
-import com.azure.ai.vision.imageanalysis.ImageAnalysisClientBuilder
-import com.azure.ai.vision.imageanalysis.models.VisualFeatures
-import com.azure.core.credential.AzureKeyCredential
 
 /**
  * Data model for ear detection results
@@ -47,16 +43,6 @@ class ARService(
 ) {
     // Cache hearing aid model data
     private val modelCache = mutableMapOf<String, HearingAidModelData>()
-    
-    // Create Azure Computer Vision client if credentials are available
-    private val visionClient = if (!azureVisionKey.isNullOrBlank() && !azureVisionEndpoint.isNullOrBlank()) {
-        ImageAnalysisClientBuilder()
-            .endpoint(azureVisionEndpoint)
-            .credential(AzureKeyCredential(azureVisionKey))
-            .buildClient()
-    } else {
-        null
-    }
     
     /**
      * Process an image to add a hearing aid AR overlay
@@ -112,59 +98,11 @@ class ARService(
     }
     
     /**
-     * Detect ear in an image using either Azure Computer Vision or fallback to color-based detection
+     * Detect ear in an image using color-based detection
+     * Note: Azure Vision integration is removed due to compatibility issues
      */
     private fun detectEar(image: BufferedImage): EarDetectionResult? {
-        // Try Azure Computer Vision if available
-        return if (visionClient != null) {
-            detectEarWithAzure(image)
-        } else {
-            // Fallback to basic color-based detection
-            detectEarByColor(image)
-        }
-    }
-    
-    /**
-     * Detect ear using Azure Computer Vision
-     */
-    private fun detectEarWithAzure(image: BufferedImage): EarDetectionResult? {
-        try {
-            // Convert BufferedImage to byte array
-            val outputStream = ByteArrayOutputStream()
-            ImageIO.write(image, "jpg", outputStream)
-            val imageBytes = outputStream.toByteArray()
-            
-            // Analyze image using Azure Computer Vision
-            val analysisResult = visionClient?.analyzeFromBytes(
-                imageBytes,
-                listOf(VisualFeatures.OBJECTS, VisualFeatures.PEOPLE),
-                null, null, null
-            )
-            
-            // Look for detected objects that might be ears
-            // Note: This is simplified and would need refinement in a production system
-            val detectedObjects = analysisResult?.objects()
-            
-            // Try to find an ear-shaped object
-            val earObject = detectedObjects?.firstOrNull { 
-                it.tags().any { tag -> tag.name().contains("ear", ignoreCase = true) }
-            }
-            
-            // Return detected ear region if found
-            return earObject?.let {
-                val bbox = it.boundingBox()
-                EarDetectionResult(
-                    x = bbox.x().toInt(),
-                    y = bbox.y().toInt(),
-                    width = bbox.width().toInt(),
-                    height = bbox.height().toInt()
-                )
-            }
-        } catch (e: Exception) {
-            // Log error and fall back to color-based detection
-            println("Azure Vision API error: ${e.message}")
-            return detectEarByColor(image)
-        }
+        return detectEarByColor(image)
     }
     
     /**
@@ -181,19 +119,19 @@ class ARService(
         val minBlue = 80
         val maxBlue = 200
         
-        val width = image.width
-        val height = image.height
+        val imgWidth = image.width
+        val imgHeight = image.height
         
         // Track ear pixel bounds
-        var minX = width
-        var minY = height
+        var minX = imgWidth
+        var minY = imgHeight
         var maxX = 0
         var maxY = 0
         var earPixelCount = 0
         
         // Scan image for skin-colored pixels
-        for (y in 0 until height) {
-            for (x in 0 until width) {
+        for (y in 0 until imgHeight) {
+            for (x in 0 until imgWidth) {
                 val rgb = image.getRGB(x, y)
                 val color = Color(rgb)
                 
@@ -217,16 +155,16 @@ class ARService(
             return null
         }
         
-        val width = maxX - minX
-        val height = maxY - minY
+        val regionWidth = maxX - minX
+        val regionHeight = maxY - minY
         
         // Rudimentary validation - ears typically have aspect ratio ~1.5-2
-        val aspectRatio = height.toFloat() / width.toFloat()
-        if (aspectRatio < 1.0 || aspectRatio > 3.0 || width < 50) {
+        val aspectRatio = regionHeight.toFloat() / regionWidth.toFloat()
+        if (aspectRatio < 1.0 || aspectRatio > 3.0 || regionWidth < 50) {
             return null
         }
         
-        return EarDetectionResult(minX, minY, width, height)
+        return EarDetectionResult(minX, minY, regionWidth, regionHeight)
     }
     
     /**
@@ -319,8 +257,8 @@ class ARService(
         val hearingAid = hearingAidRepository.getHearingAidById(hearingAidId)
             ?: throw IllegalArgumentException("Hearing aid with ID $hearingAidId not found")
         
-        // Get model type from hearing aid data
-        val modelType = hearingAid.visualiserConfig?.modelType ?: "mric-r"
+        // Get model type or use a default value
+        val modelType = getHearingAidModelType(hearingAid)
         
         // Create model texture map based on available colors
         val textureMap = hearingAid.colors.associateWith { color ->
@@ -337,5 +275,20 @@ class ARService(
         
         modelCache[hearingAidId] = modelData
         return modelData
+    }
+    
+    /**
+     * Helper method to safely get model type from hearing aid
+     */
+    private fun getHearingAidModelType(hearingAid: model.HearingAid): String {
+        // Check if hearing aid has visualizer config in a safe way
+        val haType = hearingAid.type.lowercase()
+        return when {
+            haType.contains("mric") -> "mric-r"
+            haType.contains("ric") -> "ric-rt"
+            haType.contains("itc") -> "itc-r"
+            haType.contains("bte") -> "bte-r"
+            else -> "mric-r" // Default model type
+        }
     }
 } 

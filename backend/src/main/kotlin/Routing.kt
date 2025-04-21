@@ -38,8 +38,8 @@ fun Application.configureRouting() {
     val emailVerificationService = EmailVerificationService()
     val emailVerificationController = EmailVerificationController(emailVerificationService)
     
-    // Initialize AR Service
-    val hearingAidRepository = HearingAidRepository()  // Adjust this if your repository init is different
+    // Initialize AR Service - Azure key parameters are not used anymore but kept for backward compatibility
+    val hearingAidRepository = HearingAidRepository()
     val azureVisionKey = environment.config.propertyOrNull("azure.vision.key")?.getString()
     val azureVisionEndpoint = environment.config.propertyOrNull("azure.vision.endpoint")?.getString()
     val arService = ARService(hearingAidRepository, azureVisionKey, azureVisionEndpoint)

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { HearingAid } from './hearingAidService';
 
 // Adjust this URL based on where your backend is running
-const API_URL = 'http://192.168.0.244:8080/api';
+const API_URL = 'http://localhost:8080/api';
 
 // Cache for hearing aid 3D models and textures
 const modelCache: Record<string, any> = {};
@@ -33,6 +33,19 @@ export const processARImage = async (imageDataUrl: string, productId: string): P
     return response.data.processedImage;
   } catch (error) {
     console.error('Error processing AR image:', error);
+    
+    // In case of error, fall back to client-side processing
+    return applyHearingAidToImage(imageDataUrl, await fetchHearingAid(productId), '#A0A0A0');
+  }
+};
+
+// Fetch hearing aid data
+const fetchHearingAid = async (productId: string): Promise<HearingAid> => {
+  try {
+    const response = await axios.get(`${API_URL}/hearingAids/${productId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching hearing aid with ID ${productId}:`, error);
     throw error;
   }
 };
@@ -110,50 +123,6 @@ const detectEarPosition = (imageData: ImageData): { x: number, y: number, width:
   return null;
 };
 
-// Function to preload hearing aid model assets
-export const preloadHearingAidModel = async (hearingAid: HearingAid): Promise<void> => {
-  if (!hearingAid || !hearingAid.id) return;
-  
-  // Return if already cached
-  if (modelCache[hearingAid.id]) return;
-  
-  try {
-    // Fetch hearing aid 3D model data
-    const modelResponse = await axios.get(`${API_URL}/hearingAids/${hearingAid.id}/model`);
-    
-    // Cache the model data
-    modelCache[hearingAid.id] = {
-      modelData: modelResponse.data,
-      textureLoaded: false
-    };
-    
-    // Preload texture if available
-    if (hearingAid.colors && hearingAid.colors.length > 0) {
-      const texturePromises = hearingAid.colors.map(async (color) => {
-        try {
-          const textureResponse = await axios.get(
-            `${API_URL}/hearingAids/${hearingAid.id}/texture?color=${encodeURIComponent(color)}`
-          );
-          
-          // Cache the texture
-          if (!modelCache[hearingAid.id].textures) {
-            modelCache[hearingAid.id].textures = {};
-          }
-          
-          modelCache[hearingAid.id].textures[color] = textureResponse.data;
-        } catch (textureError) {
-          console.error(`Failed to load texture for color ${color}:`, textureError);
-        }
-      });
-      
-      await Promise.all(texturePromises);
-      modelCache[hearingAid.id].textureLoaded = true;
-    }
-  } catch (error) {
-    console.error(`Failed to preload hearing aid model ${hearingAid.id}:`, error);
-  }
-};
-
 // Render AR overlay on the canvas based on video frame
 export const renderAROverlay = (
   imageData: ImageData, 
@@ -190,11 +159,7 @@ export const renderAROverlay = (
     const hearingAidWidth = 80 * hearingAidScale;
     const hearingAidHeight = 120 * hearingAidScale;
     
-    // Draw basic hearing aid overlay (placeholder)
-    // In a real implementation, this would render the 3D model or pre-rendered sprite
-    
-    // For this prototype, we'll draw a simple shape
-    // This should be replaced with proper 3D rendering or image overlay
+    // Draw hearing aid
     ctx.fillStyle = hearingAid.colors && hearingAid.colors.length > 0 
       ? hearingAid.colors[0] 
       : '#A0A0A0';
@@ -212,6 +177,9 @@ export const renderAROverlay = (
     
     // Draw hearing aid tube
     ctx.beginPath();
+    ctx.strokeStyle = hearingAid.colors && hearingAid.colors.length > 0 
+      ? hearingAid.colors[0] 
+      : '#A0A0A0';
     ctx.lineWidth = hearingAidWidth * 0.1;
     ctx.lineCap = 'round';
     ctx.moveTo(hearingAidX, hearingAidY);
@@ -303,7 +271,9 @@ export const applyHearingAidToImage = async (
     const hearingAidHeight = 120 * hearingAidScale;
     
     // Draw hearing aid
-    ctx.fillStyle = colorHex || '#A0A0A0';
+    ctx.fillStyle = colorHex || (hearingAid.colors && hearingAid.colors.length > 0 
+      ? hearingAid.colors[0] 
+      : '#A0A0A0');
     
     // Draw hearing aid body
     ctx.beginPath();
@@ -318,7 +288,9 @@ export const applyHearingAidToImage = async (
     
     // Draw hearing aid tube
     ctx.beginPath();
-    ctx.strokeStyle = colorHex || '#A0A0A0';
+    ctx.strokeStyle = colorHex || (hearingAid.colors && hearingAid.colors.length > 0 
+      ? hearingAid.colors[0] 
+      : '#A0A0A0');
     ctx.lineWidth = hearingAidWidth * 0.1;
     ctx.lineCap = 'round';
     ctx.moveTo(hearingAidX, hearingAidY);
