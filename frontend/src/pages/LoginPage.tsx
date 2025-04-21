@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/LoginPage.css';
-import { isAuthenticated, login, register, resendVerification } from '../services/authService';
+import { isAuthenticated, login, register, resendVerification, verifyEmail } from '../services/authService';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ const LoginPage: React.FC = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    otp: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -21,6 +22,7 @@ const LoginPage: React.FC = () => {
   const [verificationEmail, setVerificationEmail] = useState('');
   const [resendingVerification, setResendingVerification] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
+  const [verifying, setVerifying] = useState(false);
   
 
   // Update isLogin when path changes
@@ -67,6 +69,34 @@ const LoginPage: React.FC = () => {
       setVerificationMessage('Failed to resend verification email');
     } finally {
       setResendingVerification(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!formData.otp) {
+      setError('Please enter the verification code from your email');
+      return;
+    }
+    
+    setVerifying(true);
+    setError('');
+    
+    try {
+      const result = await verifyEmail(verificationEmail, formData.otp);
+      if (result.success) {
+        setVerificationMessage('Email verified successfully! You can now log in.');
+        setTimeout(() => {
+          setNeedsVerification(false);
+          setIsLogin(true);
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError('Failed to verify email. Please try again.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -152,6 +182,7 @@ const LoginPage: React.FC = () => {
       confirmPassword: '',
       firstName: '',
       lastName: '',
+      otp: ''
     });
     setError('');
     setNeedsVerification(false);
@@ -159,43 +190,64 @@ const LoginPage: React.FC = () => {
     navigate(isLogin ? '/signup' : '/login');
   };
 
-  // If user needs to verify email, show verification message
+  // Show email verification screen
   if (needsVerification) {
     return (
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-content">
             <div className="auth-header">
-              <h1>Email Verification Required</h1>
-              <p>Please check your email for a verification link</p>
+              <h1>Verify Your Email</h1>
+              <p>We've sent a verification code to {verificationEmail}</p>
             </div>
             
-            <div className="verification-content">
-              <div className="verification-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4a90e2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2v-3.5"></path>
-                  <path d="M14 11l-4.5 4.5L8 14"></path>
-                  <path d="M18 9.8l-5.3 5.3-1.4-1.4"></path>
-                  <path d="M2 10h2"></path>
-                  <path d="M2 14h2"></path>
-                  <path d="M20 6h2"></path>
-                  <path d="M7 6h10"></path>
-                </svg>
+            {error && (
+              <div className="error-message" style={{ 
+                color: 'white', 
+                backgroundColor: '#ff5252', 
+                padding: '10px 15px', 
+                borderRadius: '5px', 
+                marginBottom: '20px',
+                fontSize: '14px'
+              }}>
+                <strong>Error:</strong> {error}
+              </div>
+            )}
+            
+            {verificationMessage && (
+              <div className="success-message" style={{ 
+                color: 'white', 
+                backgroundColor: '#4caf50', 
+                padding: '10px 15px', 
+                borderRadius: '5px', 
+                marginBottom: '20px',
+                fontSize: '14px'
+              }}>
+                {verificationMessage}
+              </div>
+            )}
+            
+            <div className="verification-form">
+              <div className="form-group">
+                <label htmlFor="otp">Verification Code</label>
+                <input
+                  type="text"
+                  id="otp"
+                  name="otp"
+                  value={formData.otp}
+                  onChange={handleChange}
+                  placeholder="Enter the verification code"
+                  maxLength={6}
+                />
               </div>
               
-              <p className="verification-message">
-                We've sent a verification email to <strong>{verificationEmail}</strong>
-              </p>
-              
-              <p className="verification-instructions">
-                Please check your inbox and click the verification link to activate your account.
-              </p>
-              
-              {verificationMessage && (
-                <div className={`verification-status ${verificationMessage.includes('success') ? 'success' : 'error'}`}>
-                  {verificationMessage}
-                </div>
-              )}
+              <button 
+                onClick={handleVerify}
+                disabled={verifying}
+                className="submit-button"
+              >
+                {verifying ? 'Verifying...' : 'Verify Email'}
+              </button>
               
               <div className="verification-actions">
                 <p>Didn't receive the email?</p>
@@ -217,6 +269,7 @@ const LoginPage: React.FC = () => {
                       confirmPassword: '',
                       firstName: '',
                       lastName: '',
+                      otp: ''
                     });
                   }}
                   className="secondary-button"
@@ -276,7 +329,7 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form onSubmit={handleSubmit}>
             {!isLogin && (
               <div className="name-fields">
                 <div className="form-group">
@@ -376,7 +429,7 @@ const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="auth-footer">
+          <div className="auth-switch">
             <p>
               {isLogin 
                 ? "Don't have an account?" 
