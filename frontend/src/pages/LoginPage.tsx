@@ -181,7 +181,7 @@ const LoginPage: React.FC = () => {
         });
 
         if (loginResult.user) {
-          navigate('/dashboard');
+          navigate('/profile');
         } else if (!loginResult.verified && loginResult.message.includes('not verified')) {
           // User exists but email isn't verified
           setNeedsVerification(true);
