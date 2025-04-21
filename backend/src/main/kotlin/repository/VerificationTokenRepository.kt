@@ -17,10 +17,13 @@ class VerificationTokenRepository {
      * @return The created verification token
      */
     suspend fun createToken(email: String, token: String): VerificationToken? {
+        val expiryDate = Instant.now().plusSeconds(3600) // 1 hour expiry
         val verificationToken = VerificationToken(
             id = UUID.randomUUID().toString(),
             email = email,
-            token = token
+            token = token,
+            expiryDate = expiryDate,
+            verified = false
         )
         
         try {
@@ -69,7 +72,7 @@ class VerificationTokenRepository {
         
         if (verificationToken != null && verificationToken.token == token) {
             // Check if the token has expired
-            if (Instant.now().epochSecond > verificationToken.expiryDate) {
+            if (Instant.now().isAfter(verificationToken.expiryDate)) {
                 println("Token has expired")
                 return false
             }

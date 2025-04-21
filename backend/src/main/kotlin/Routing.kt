@@ -13,6 +13,8 @@ import routes.hearingAidRoutes
 import routes.audiologistRoutes
 import routes.appointmentRoutes
 import routes.hearingTestRoutes
+import controller.EmailVerificationController
+import service.EmailVerificationService
 
 
 @Serializable
@@ -30,6 +32,9 @@ data class RegisterRequest(
 data class AuthResponse(val userId: String?, val token: String?, val message: String)
 
 fun Application.configureRouting() {
+    val emailVerificationService = EmailVerificationService()
+    val emailVerificationController = EmailVerificationController(emailVerificationService)
+    
     routing {
         get("/") {
             call.respondText("Hello World!")
@@ -39,5 +44,10 @@ fun Application.configureRouting() {
         appointmentRoutes()
         audiologistRoutes()
         hearingTestRoutes()
+        
+        // Register email verification routes
+        with(emailVerificationController) {
+            this@routing.registerRoutes()
+        }
     }
 }
