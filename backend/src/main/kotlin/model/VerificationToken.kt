@@ -1,9 +1,13 @@
 package model
 
-import java.time.LocalDateTime
+import kotlinx.serialization.Serializable
+import java.time.Instant
 
+@Serializable
 data class VerificationToken(
+    val id: String = java.util.UUID.randomUUID().toString(),
     val email: String,
     val token: String,
-    val expiryDate: LocalDateTime
+    val expiryDate: Instant,
+    val verified: Boolean = false
 ) 
