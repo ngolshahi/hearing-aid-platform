@@ -69,18 +69,33 @@ export interface Audiologist {
 
 
 // Register a new user
-export const register = async (data: RegisterRequest): Promise<User | null> => {
+export const register = async (data: RegisterRequest): Promise<{ user: User | null, message: string }> => {
   try {
-    const response = await axios.post<User>(`${API_URL}/users/register`, data);
-    if (response.data.email) {
-      localStorage.setItem('user', JSON.stringify(response.data));
+    const response = await axios.post<any>(`${API_URL}/users/register`, data);
+    if (response.data.user) {
+      return {
+        user: response.data.user,
+        message: response.data.message || "Registration successful"
+      };
     }
-    return response.data;
+    return {
+      user: null,
+      message: response.data.message || "Unknown server response"
+    };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      return null;
+      // Return the specific error message from the backend
+      const errorMessage = error.response.data?.message || "Registration failed";
+      console.error("Registration error:", errorMessage);
+      return {
+        user: null,
+        message: errorMessage
+      };
     }
-    return null;
+    return {
+      user: null,
+      message: "Network error or server unavailable"
+    };
   }
 };
 

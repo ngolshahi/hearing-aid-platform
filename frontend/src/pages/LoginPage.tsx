@@ -52,35 +52,45 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-  
+
+    // Validate password match for registration
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Validation
-      if (!isLogin && formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setIsLoading(false);
-        return;
-      }
-  
       if (isLogin) {
-        // Handle login
-        const response = await login({
+        // Handle login (unchanged)
+        const user = await login({
           email: formData.email,
           password: formData.password
         });
-  
-        // Check for successful login - the token must exist AND not be null
-        if (response && response.email) {
-          // Login successful - store the token in localStorage or context
-          localStorage.setItem('authToken', response.email);
-          alert('Logged in successfully.');
-          console.log('Logged in successfully as ' + localStorage.getItem('user'));
-          window.location.reload()
+
+        if (user) {
+          navigate('/dashboard');
         } else {
-          // Login failed
           setError('Invalid email or password');
         }
       } else {
-        // Handle registration (unchanged)
+        // Password validation on client side
+        const passwordRegex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+        if (!passwordRegex.test(formData.password)) {
+          setError('Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one number');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Name validation on client side
+        const nameRegex = /^[A-Za-z\s-]{2,}$/;
+        if (!nameRegex.test(formData.firstName || '') || !nameRegex.test(formData.lastName || '')) {
+          setError('Names must be at least 2 characters and contain only letters, spaces, and hyphens');
+          setIsLoading(false);
+          return;
+        }
+
+        // Handle registration with improved error handling
         const response = await register({
           email: formData.email,
           password: formData.password,
@@ -88,13 +98,13 @@ const LoginPage: React.FC = () => {
           lastName: formData.lastName
         });
   
-        if (response && response.email) {
+        if (response.user) {
           // Registration successful
           alert('Account created successfully! Please log in.');
           navigate('/login');
         } else {
-          // Registration failed
-          setError('Registration failed');
+          // Registration failed with specific error message
+          setError(response.message);
         }
       }
     } catch (err) {
@@ -133,8 +143,23 @@ const LoginPage: React.FC = () => {
           </div>
 
           {error && (
-            <div className="error-message" style={{ color: 'red', marginBottom: '15px' }}>
-              {error}
+            <div className="error-message" style={{ 
+              color: 'white', 
+              backgroundColor: '#ff5252', 
+              padding: '10px 15px', 
+              borderRadius: '5px', 
+              marginBottom: '20px',
+              fontSize: '14px'
+            }}>
+              <strong>Error:</strong> {error}
+              {!isLogin && error.includes('Password must be') && (
+                <ul style={{ marginTop: '5px', marginBottom: '0', paddingLeft: '20px' }}>
+                  <li>At least 8 characters long</li>
+                  <li>Include at least one uppercase letter (A-Z)</li>
+                  <li>Include at least one lowercase letter (a-z)</li>
+                  <li>Include at least one number (0-9)</li>
+                </ul>
+              )}
             </div>
           )}
 
