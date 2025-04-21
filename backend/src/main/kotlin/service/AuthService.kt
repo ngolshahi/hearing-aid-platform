@@ -4,6 +4,7 @@ import model.User
 import model.VerificationRequest
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import repository.UserRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -13,7 +14,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val emailService: EmailService
 ) {
-    fun register(email: String, password: String): User {
+    fun register(email: String, password: String, firstName: String, lastName: String): User {
         // Check if user already exists
         if (userRepository.findByEmail(email) != null) {
             throw IllegalArgumentException("User with this email already exists")
@@ -21,19 +22,19 @@ class AuthService(
 
         // Create new user
         val user = User(
-            id = UUID.randomUUID().toString(),
             email = email,
             password = passwordEncoder.encode(password),
-            isVerified = false,
-            createdAt = LocalDateTime.now()
+            firstName = firstName,
+            lastName = lastName,
+            verificationCode = UUID.randomUUID().toString(),
+            isVerified = false
         )
 
         // Save user
         val savedUser = userRepository.save(user)
 
         // Send verification email
-        val verificationCode = generateVerificationCode()
-        emailService.sendVerificationEmail(email, verificationCode)
+        emailService.sendVerificationEmail(email, savedUser.verificationCode)
 
         return savedUser
     }
@@ -42,10 +43,13 @@ class AuthService(
         val user = userRepository.findByEmail(request.email)
             ?: throw IllegalArgumentException("User not found")
 
-        // TODO: Implement verification code validation
-        // For now, just mark the user as verified
-        user.isVerified = true
-        return userRepository.save(user)
+        if (user.verificationCode != request.code) {
+            throw IllegalArgumentException("Invalid verification code")
+        }
+
+        // Create a new user with isVerified set to true
+        val verifiedUser = user.copy(isVerified = true)
+        return userRepository.save(verifiedUser)
     }
 
     private fun generateVerificationCode(): String {

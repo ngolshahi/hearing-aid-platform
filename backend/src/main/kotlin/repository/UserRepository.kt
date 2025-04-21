@@ -9,12 +9,8 @@ import utils.PasswordUtils
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
-@Repository
-interface UserRepository : JpaRepository<User, Long> {
-    fun findByEmail(email: String): User?
-}
-
-class UserRepository {
+// Renaming the class to CosmosUserRepository to avoid conflict with the interface
+class CosmosUserRepository {
     private val container: CosmosContainer = DatabaseConfig.getUsersContainer()
 
     fun readUser(email: String): User? {
@@ -84,4 +80,10 @@ class UserRepository {
         }
         return null
     }
+}
+
+// JPA Repository interface
+@Repository
+interface UserRepository : JpaRepository<User, Long> {
+    fun findByEmail(email: String): User?
 }

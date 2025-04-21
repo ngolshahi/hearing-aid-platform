@@ -36,8 +36,8 @@ class UserService(
             throw IllegalArgumentException("Invalid verification code")
         }
 
-        user.isVerified = true
-        return userRepository.save(user)
+        val verifiedUser = user.copy(isVerified = true)
+        return userRepository.save(verifiedUser)
     }
 
     fun getUserByEmail(email: String): User? {

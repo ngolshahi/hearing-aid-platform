@@ -2,11 +2,8 @@ package model
 
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class VerificationRequest(
-    val email: String,
-    val otp: String
-)
+// VerificationRequest class has been moved to VerificationRequest.kt
+// Removing duplicate declaration
 
 @Serializable
 data class VerificationResponse(

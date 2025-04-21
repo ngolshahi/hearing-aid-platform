@@ -3,14 +3,14 @@ package services
 import model.User
 import model.RegistrationResponse
 import model.VerificationResponse
-import repository.UserRepository
+import repository.CosmosUserRepository
 import io.ktor.http.HttpStatusCode
 import utils.PasswordUtils
 import utils.ValidationUtils
 import utils.OTPUtils
 
 class AuthService(
-    private val userRepository: UserRepository = UserRepository(),
+    private val userRepository: CosmosUserRepository = CosmosUserRepository(),
     private val emailService: EmailService = EmailService()
 ) {
     
@@ -59,7 +59,7 @@ class AuthService(
         )
         
         // Save the user to the database
-        val savedUser = userRepository.createUser(user)
+        val savedUser = userRepository.createUser(name, email, password)
         
         if (savedUser != null) {
             // Generate OTP
@@ -72,15 +72,13 @@ class AuthService(
                 return RegistrationResponse(
                     success = true,
                     message = "Registration successful. Please check your email for verification code.",
-                    email = email,
-                    requiresVerification = true
+                    userId = email
                 )
             } else {
                 return RegistrationResponse(
                     success = true,
                     message = "Registration successful, but verification email could not be sent. Please contact support.",
-                    email = email,
-                    requiresVerification = true
+                    userId = email
                 )
             }
         } else {
