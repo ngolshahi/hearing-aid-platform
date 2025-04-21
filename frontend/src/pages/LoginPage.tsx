@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/LoginPage.css';
 import { isAuthenticated, login, register, resendVerification, verifyEmail } from '../services/authService';
@@ -23,11 +23,12 @@ const LoginPage: React.FC = () => {
   const [resendingVerification, setResendingVerification] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes in seconds
+  const [timerActive, setTimerActive] = useState(false);
   
 
   // Update isLogin when path changes
   useEffect(() => {
-
     const checkAuth = async () => {
       try {
         const authStatus = await isAuthenticated();
@@ -44,6 +45,59 @@ const LoginPage: React.FC = () => {
     
     setIsLogin(location.pathname === '/login');
   }, [location.pathname, navigate]);
+
+  // Timer for OTP verification
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    
+    if (needsVerification && timerActive && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining(prev => prev - 1);
+      }, 1000);
+    } else if (timeRemaining === 0) {
+      // Time expired
+      setError('Verification time expired. Please try again.');
+      setTimeout(() => {
+        resetVerification();
+      }, 3000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [needsVerification, timerActive, timeRemaining]);
+
+  // Start timer when verification is needed
+  useEffect(() => {
+    if (needsVerification) {
+      setTimeRemaining(300); // Reset to 5 minutes
+      setTimerActive(true);
+    } else {
+      setTimerActive(false);
+    }
+  }, [needsVerification]);
+
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  const resetVerification = useCallback(() => {
+    setNeedsVerification(false);
+    setVerificationEmail('');
+    setFormData(prev => ({
+      ...prev,
+      otp: ''
+    }));
+    setTimerActive(false);
+    if (location.pathname === '/login') {
+      setIsLogin(true);
+    } else {
+      setIsLogin(false);
+      navigate('/signup');
+    }
+  }, [navigate, location.pathname]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -62,6 +116,9 @@ const LoginPage: React.FC = () => {
       const result = await resendVerification(verificationEmail);
       if (result.success) {
         setVerificationMessage(result.message);
+        // Reset timer when resending verification
+        setTimeRemaining(300);
+        setTimerActive(true);
       } else {
         setVerificationMessage(result.message);
       }
@@ -84,6 +141,7 @@ const LoginPage: React.FC = () => {
     try {
       const result = await verifyEmail(verificationEmail, formData.otp);
       if (result.success) {
+        setTimerActive(false);
         setVerificationMessage('Email verified successfully! You can now log in.');
         setTimeout(() => {
           setNeedsVerification(false);
@@ -201,6 +259,16 @@ const LoginPage: React.FC = () => {
               <p>We've sent a verification code to {verificationEmail}</p>
             </div>
             
+            <div className="timer" style={{ 
+              textAlign: 'center', 
+              margin: '10px 0 20px', 
+              fontWeight: 'bold',
+              fontSize: '18px',
+              color: timeRemaining < 60 ? '#ff5252' : '#333'
+            }}>
+              Time remaining: {formatTime(timeRemaining)}
+            </div>
+            
             {error && (
               <div className="error-message" style={{ 
                 color: 'white', 
@@ -243,7 +311,7 @@ const LoginPage: React.FC = () => {
               
               <button 
                 onClick={handleVerify}
-                disabled={verifying}
+                disabled={verifying || timeRemaining === 0}
                 className="submit-button"
               >
                 {verifying ? 'Verifying...' : 'Verify Email'}
@@ -253,28 +321,17 @@ const LoginPage: React.FC = () => {
                 <p>Didn't receive the email?</p>
                 <button 
                   onClick={handleResendVerification}
-                  disabled={resendingVerification}
+                  disabled={resendingVerification || timeRemaining > 240} // Allow resend after 1 minute
                   className="submit-button"
                 >
-                  {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                  {resendingVerification ? 'Sending...' : timeRemaining > 240 ? `Resend available in ${formatTime(timeRemaining - 240)}` : 'Resend Verification Email'}
                 </button>
                 
                 <button
-                  onClick={() => {
-                    setNeedsVerification(false);
-                    setVerificationEmail('');
-                    setFormData({
-                      email: '',
-                      password: '',
-                      confirmPassword: '',
-                      firstName: '',
-                      lastName: '',
-                      otp: ''
-                    });
-                  }}
+                  onClick={resetVerification}
                   className="secondary-button"
                 >
-                  Back to Login
+                  Back to {isLogin ? 'Login' : 'Registration'}
                 </button>
               </div>
             </div>
