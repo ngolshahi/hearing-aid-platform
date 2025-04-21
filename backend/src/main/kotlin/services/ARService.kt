@@ -433,7 +433,7 @@ class ARService(
      * Get a human-readable color name from a hex color value
      */
     private fun getColorName(hexColor: String): String {
-        return when (hexColor.toLowerCase()) {
+        return when (hexColor.lowercase()) {
             "#4e312d" -> "chestnut"
             "#bec2cb" -> "silver"
             "#708090" -> "graphite"
