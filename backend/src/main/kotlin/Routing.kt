@@ -14,7 +14,10 @@ import routes.audiologistRoutes
 import routes.appointmentRoutes
 import routes.hearingTestRoutes
 import controller.EmailVerificationController
+import controller.ARController
 import service.EmailVerificationService
+import services.ARService
+import repository.HearingAidRepository
 
 
 @Serializable
@@ -35,6 +38,13 @@ fun Application.configureRouting() {
     val emailVerificationService = EmailVerificationService()
     val emailVerificationController = EmailVerificationController(emailVerificationService)
     
+    // Initialize AR Service
+    val hearingAidRepository = HearingAidRepository()  // Adjust this if your repository init is different
+    val azureVisionKey = environment.config.propertyOrNull("azure.vision.key")?.getString()
+    val azureVisionEndpoint = environment.config.propertyOrNull("azure.vision.endpoint")?.getString()
+    val arService = ARService(hearingAidRepository, azureVisionKey, azureVisionEndpoint)
+    val arController = ARController(arService)
+    
     routing {
         get("/") {
             call.respondText("Hello World!")
@@ -48,6 +58,11 @@ fun Application.configureRouting() {
         // Register email verification routes
         with(emailVerificationController) {
             this@routing.registerRoutes()
+        }
+        
+        // Register AR routes
+        with(arController) {
+            configureRoutes(this@routing)
         }
     }
 }
