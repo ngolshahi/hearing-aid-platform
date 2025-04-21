@@ -39,7 +39,7 @@ class UserRepository {
         }
     }
 
-    fun updateUser(user: User): User? {
+    suspend fun updateUser(user: User): User? {
         try {
             // First check if the user exists
             val existingUser = readUser(user.email) ?: return null

@@ -104,7 +104,7 @@ class AuthService(
      * @param token The verification token
      * @return true if the email was verified and account created, false otherwise
      */
-    fun verifyEmail(email: String, token: String): Boolean {
+    suspend fun verifyEmail(email: String, token: String): Boolean {
         val tokenVerified = verificationTokenRepository.verifyToken(email, token)
         
         if (tokenVerified) {
@@ -162,7 +162,7 @@ class AuthService(
      * @param user The user to update
      * @return The updated user, or null if the update failed
      */
-    fun updateUser(user: User): User? {
+    suspend fun updateUser(user: User): User? {
         // Check if the password has been changed
         val existingUser = userRepository.readUser(user.email)
         
