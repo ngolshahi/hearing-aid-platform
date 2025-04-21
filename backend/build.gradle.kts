@@ -34,6 +34,9 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$kotlin_version")
     implementation("org.mindrot:jbcrypt:0.4")
     
+    // Jackson for handling Java 8 date/time types
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.0")
+    
     // Email dependencies
     implementation("com.sun.mail:javax.mail:1.6.2")
     implementation("javax.activation:activation:1.1.1")
