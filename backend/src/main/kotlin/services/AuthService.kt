@@ -12,6 +12,7 @@ import com.azure.cosmos.CosmosContainer
 import com.azure.cosmos.models.PartitionKey
 import java.util.UUID
 import config.DatabaseConfig
+import java.util.concurrent.ConcurrentHashMap
 
 @Serializable
 data class PendingUser(
@@ -19,6 +20,7 @@ data class PendingUser(
     val email: String,
     val name: String,
     val password: String,
+    val otp: String = "", // Store OTP directly with the pending user
     val createdAt: Long = Instant.now().epochSecond
 )
 
@@ -28,6 +30,9 @@ class AuthService(
     private val emailService: EmailService = EmailService()
 ) {
     private val pendingContainer: CosmosContainer = DatabaseConfig.getVerificationTokensContainer()
+    
+    // Simple in-memory store of pending users with their OTPs
+    private val pendingUsers = ConcurrentHashMap<String, PendingUser>()
     
     /**
      * Get a user by email
@@ -65,74 +70,56 @@ class AuthService(
             return Pair(null, "User with this email already exists")
         }
         
-        // Create a pending user with a hashed password
+        // Generate OTP
+        val otp = emailService.generateOTP()
+
+        // Create a pending user with a hashed password and OTP
         val hashedPassword = PasswordUtils.hashPassword(password)
         val pendingUser = PendingUser(
             email = email, 
             name = name, 
-            password = hashedPassword
+            password = hashedPassword,
+            otp = otp
         )
         
-        // Store the pending user
-        try {
-            pendingContainer.createItem(pendingUser)
-            
-            // Generate and send verification email
-            val otp = emailService.generateOTP()
-            val token = verificationTokenRepository.createToken(email, otp)
-            
-            if (token != null) {
-                val emailSent = emailService.sendVerificationEmail(email, otp)
-                if (emailSent) {
-                    return Pair(pendingUser, "Your account is pending verification. Please check your email to verify your account before logging in.")
-                } else {
-                    return Pair(pendingUser, "Your account is pending verification, but we couldn't send a verification email. Please contact support.")
-                }
-            } else {
-                return Pair(pendingUser, "Your account is pending verification, but we couldn't create a verification token. Please contact support.")
-            }
-        } catch (e: Exception) {
-            println("Error creating pending user: ${e.message}")
-            e.printStackTrace()
-            return Pair(null, "Failed to create your account. Please try again later.")
+        // Store the pending user in memory
+        pendingUsers[email] = pendingUser
+        
+        // Try to send verification email
+        val emailSent = emailService.sendVerificationEmail(email, otp)
+        
+        if (emailSent) {
+            return Pair(pendingUser, "Your account is pending verification. Please check your email to verify your account before logging in.")
+        } else {
+            return Pair(pendingUser, "Your account is pending verification, but we couldn't send a verification email. Please contact support.")
         }
     }
     
     /**
      * Verify a user's email and create their account
      * @param email The user's email
-     * @param token The verification token
+     * @param token The verification token (OTP)
      * @return true if the email was verified and account created, false otherwise
      */
     suspend fun verifyEmail(email: String, token: String): Boolean {
-        val tokenVerified = verificationTokenRepository.verifyToken(email, token)
+        val pendingUser = pendingUsers[email] ?: return false
         
-        if (tokenVerified) {
-            // Find the pending user
-            val query = "SELECT * FROM c WHERE c.email = '$email' AND c._self LIKE '%verification-tokens%'"
-            val results = pendingContainer.queryItems(query, null, PendingUser::class.java)
-            val pendingUser = results.firstOrNull()
+        // Simple OTP matching
+        if (pendingUser.otp == token) {
+            // Create the actual user
+            val user = User(
+                id = email,
+                name = pendingUser.name,
+                email = pendingUser.email,
+                password = pendingUser.password,
+                verified = true
+            )
             
-            if (pendingUser != null) {
-                // Create the actual user
-                val user = User(
-                    id = email,
-                    name = pendingUser.name,
-                    email = pendingUser.email,
-                    password = pendingUser.password,
-                    verified = true
-                )
-                
-                val createdUser = userRepository.createUser(user)
-                if (createdUser != null) {
-                    // Delete the pending user
-                    try {
-                        pendingContainer.deleteItem(pendingUser.id, PartitionKey(pendingUser.id), null)
-                    } catch (e: Exception) {
-                        println("Error deleting pending user: ${e.message}")
-                    }
-                    return true
-                }
+            val createdUser = userRepository.createUser(user)
+            if (createdUser != null) {
+                // Remove from pending users
+                pendingUsers.remove(email)
+                return true
             }
         }
         
@@ -188,29 +175,24 @@ class AuthService(
      */
     fun isEmailVerified(email: String): Boolean {
         val user = userRepository.readUser(email)
-        return user?.verified == true
+        return user?.verified ?: false
     }
     
     /**
-     * Resend verification email
+     * Resend the verification email to a pending user
      * @param email The user's email
-     * @return true if the email was sent, false otherwise
+     * @return true if the email was sent successfully, false otherwise
      */
     suspend fun resendVerificationEmail(email: String): Boolean {
-        // Check if there's a pending user
-        val query = "SELECT * FROM c WHERE c.email = '$email' AND c._self LIKE '%verification-tokens%'"
-        val results = pendingContainer.queryItems(query, null, PendingUser::class.java)
-        val pendingUser = results.firstOrNull()
+        val pendingUser = pendingUsers[email] ?: return false
         
-        if (pendingUser != null) {
-            // Generate and send verification email
-            val otp = emailService.generateOTP()
-            val token = verificationTokenRepository.createToken(email, otp)
-            
-            if (token != null) {
-                return emailService.sendVerificationEmail(email, otp)
-            }
-        }
-        return false
+        // Generate new OTP
+        val otp = emailService.generateOTP()
+        
+        // Update the pending user with the new OTP
+        pendingUsers[email] = pendingUser.copy(otp = otp)
+        
+        // Send the verification email
+        return emailService.sendVerificationEmail(email, otp)
     }
 }

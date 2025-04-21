@@ -72,14 +72,18 @@ fun Route.userRoutes() {
         post("/verify-email") {
             try {
                 val verificationRequest = call.receive<VerificationRequest>()
+                println("Verifying email: ${verificationRequest.email} with OTP: ${verificationRequest.token}")
+                
                 val verified = authService.verifyEmail(verificationRequest.email, verificationRequest.token)
                 
                 if (verified) {
                     call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully. You can now log in."))
                 } else {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid or expired verification token"))
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid verification code. Please try again."))
                 }
             } catch (e: Exception) {
+                println("Error verifying email: ${e.message}")
+                e.printStackTrace()
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to verify email: ${e.message}"))
             }
         }
@@ -87,14 +91,18 @@ fun Route.userRoutes() {
         post("/resend-verification") {
             try {
                 val request = call.receive<ResendVerificationRequest>()
+                println("Resending verification email to: ${request.email}")
+                
                 val sent = authService.resendVerificationEmail(request.email)
                 
                 if (sent) {
                     call.respond(HttpStatusCode.OK, mapOf("message" to "Verification email resent successfully"))
                 } else {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to resend verification email"))
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to resend verification email. User may not exist or has already been verified."))
                 }
             } catch (e: Exception) {
+                println("Error resending verification: ${e.message}")
+                e.printStackTrace()
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to resend verification email: ${e.message}"))
             }
         }
