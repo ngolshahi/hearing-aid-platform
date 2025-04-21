@@ -4,3 +4,10 @@ ktor:
             - com.example.com.ApplicationKt.module
     deployment:
         port: 8080
+
+# Azure Services Configuration
+azure:
+    vision:
+        # Replace these placeholder values with your actual Azure Computer Vision API keys
+        key: ${AZURE_VISION_KEY}
+        endpoint: ${AZURE_VISION_ENDPOINT}
