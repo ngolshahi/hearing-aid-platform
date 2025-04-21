@@ -9,6 +9,7 @@ const API_URL = 'http://192.168.0.244:8080/api';
 // Cache for hearing aid 3D models and textures
 const modelCache: Record<string, THREE.Group> = {};
 const textureCache: Record<string, THREE.Texture> = {};
+const imageCache: Record<string, HTMLImageElement> = {};
 
 interface ARProcessResponse {
   processedImage: string;
@@ -17,7 +18,30 @@ interface ARProcessResponse {
   fallbackMode?: boolean;
 }
 
-// Load 3D model
+/**
+ * 2D Hearing Aid Image Paths - dynamically generated based on product ID
+ * Each product has its own folder with a main.png file
+ */
+const getHearingAidImagePath = (productId: string): string => {
+  return `/images/${productId}/main.png`;
+};
+
+// Preload the hearing aid images for faster rendering
+export const preloadHearingAidImages = async (productIds: string[]): Promise<void> => {
+  productIds.forEach(productId => {
+    const path = getHearingAidImagePath(productId);
+    if (!imageCache[path]) {
+      const img = new Image();
+      img.src = path;
+      img.onload = () => {
+        console.log(`Preloaded hearing aid image: ${path}`);
+        imageCache[path] = img;
+      };
+    }
+  });
+};
+
+// Load 3D model (used as fallback)
 const loadModel = async (): Promise<THREE.Group> => {
   if (modelCache['hearing-aid']) {
     return modelCache['hearing-aid'];
@@ -40,55 +64,64 @@ const loadModel = async (): Promise<THREE.Group> => {
 // Process an image on the backend to add a hearing aid overlay
 export const processARImage = async (imageDataUrl: string, productId: string): Promise<string> => {
   try {
-    // First try server-side processing
-    // Extract base64 data from data URL (remove the prefix)
-    const base64Data = imageDataUrl.split(',')[1];
+    // First try client-side processing for better results
+    console.log('Attempting client-side processing for product ID:', productId);
     
-    // Call the backend API to process the image
-    const response = await axios.post<ARProcessResponse>(
-      `${API_URL}/ar/process-image`, 
-      {
-        image: base64Data,
-        productId
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // Set longer timeout since image processing can take time
-        timeout: 30000
-      }
-    );
+    const hearingAid = await fetchHearingAid(productId);
     
-    // Check if we got a successful response with processedImage
-    if (response.data.success && response.data.processedImage) {
-      // If it's in fallback mode, add a data URL prefix
-      let processedImage = response.data.processedImage;
-      
-      // Add data URL prefix if it's not already there
-      if (!processedImage.startsWith('data:image')) {
-        processedImage = `data:image/png;base64,${processedImage}`;
-      }
-      
-      // Add a console message if in fallback mode
-      if (response.data.fallbackMode) {
-        console.log('Using server fallback mode for AR: ' + (response.data.message || ''));
-      }
-      
-      return processedImage;
-    } else {
-      throw new Error(response.data.message || 'Failed to process image on server');
-    }
-  } catch (error) {
-    console.error('Error processing AR image on server, falling back to client-side:', error);
+    // Use client-side image processing for better quality
+    return await applyHearingAidToImage(imageDataUrl, hearingAid, productId);
+  } catch (clientError) {
+    console.error('Client-side processing failed, trying server-side:', clientError);
     
-    // Fall back to client-side processing
+    // Fall back to server-side processing
     try {
-      const hearingAid = await fetchHearingAid(productId);
-      return applyHearingAidToImage(imageDataUrl, hearingAid, hearingAid.colors[0] || '#A0A0A0');
-    } catch (clientError) {
-      console.error('Client-side processing failed:', clientError);
-      throw clientError;
+      // Extract base64 data from data URL
+      let base64Data = imageDataUrl.split(',')[1];
+      
+      // Check if we have valid base64 data
+      if (!base64Data) {
+        console.error('Invalid image data URL format');
+        throw new Error('Invalid image format');
+      }
+
+      // Clean the base64 data
+      base64Data = base64Data.trim();
+      
+      // Call the backend API
+      const response = await axios.post<ARProcessResponse>(
+        `${API_URL}/ar/process-image`, 
+        {
+          image: base64Data,
+          productId
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 45000
+        }
+      );
+      
+      console.log('Server response status:', response.status);
+      
+      // Check if we got a successful response
+      if (response.data.success && response.data.processedImage) {
+        let processedImage = response.data.processedImage;
+        
+        // Add data URL prefix if needed
+        if (!processedImage.startsWith('data:image')) {
+          processedImage = `data:image/png;base64,${processedImage}`;
+        }
+        
+        return processedImage;
+      } else {
+        console.error('Server returned unsuccessful response:', response.data);
+        throw new Error(response.data.message || 'Failed to process image on server');
+      }
+    } catch (error: any) {
+      console.error('Both client-side and server-side processing failed:', error);
+      throw new Error('Failed to process image. Please try a different photo or check your connection.');
     }
   }
 };
@@ -104,10 +137,163 @@ const fetchHearingAid = async (productId: string): Promise<HearingAid> => {
   }
 };
 
+// Load an image asynchronously
+const loadImage = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    // Check cache first
+    if (imageCache[src]) {
+      resolve(imageCache[src]);
+      return;
+    }
+    
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      imageCache[src] = img;
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      reject(new Error(`Failed to load image: ${src}`));
+    };
+    img.src = src;
+  });
+};
+
+// Apply hearing aid to image using the product's PNG image
+export const applyHearingAidToImage = async (
+  imageDataUrl: string,
+  hearingAid: HearingAid,
+  productId: string
+): Promise<string> => {
+  // Create an image element to load the source image
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = imageDataUrl;
+  
+  // Wait for the image to load
+  await new Promise<void>((resolve) => {
+    img.onload = () => resolve();
+  });
+  
+  // Create a canvas to process the image
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not get canvas context');
+  
+  // Draw the original image to the canvas
+  ctx.drawImage(img, 0, 0);
+  
+  try {
+    // Get product-specific hearing aid image path
+    const hearingAidImagePath = getHearingAidImagePath(productId);
+    
+    // Try loading the 2D image
+    const hearingAidImg = await loadImage(hearingAidImagePath);
+    
+    // Calculate ear position - for 2D image we'll use a simple detection
+    // In a real implementation, this would use the TensorFlow ear detection
+    const earPosition = detectEarPosition(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    
+    if (earPosition) {
+      // Calculate size for hearing aid image
+      const hearingAidWidth = earPosition.width * 1.2; // Slightly larger than ear
+      const hearingAidHeight = hearingAidWidth * (hearingAidImg.height / hearingAidImg.width);
+      
+      // Position the hearing aid next to the ear
+      const hearingAidX = earPosition.isRightEar 
+        ? earPosition.x - hearingAidWidth * 0.8  // For right ear, position to the left
+        : earPosition.x + earPosition.width * 0.3; // For left ear, position to the right
+      
+      const hearingAidY = earPosition.y - hearingAidHeight * 0.3; // Position slightly above ear center
+      
+      // Save context for rotation
+      ctx.save();
+      
+      // Apply rotation if needed (around the hearing aid center)
+      if (earPosition.rotation !== 0) {
+        const centerX = hearingAidX + hearingAidWidth / 2;
+        const centerY = hearingAidY + hearingAidHeight / 2;
+        ctx.translate(centerX, centerY);
+        ctx.rotate(earPosition.rotation);
+        ctx.translate(-centerX, -centerY);
+      }
+      
+      // For right ear, we need to flip the image horizontally
+      if (earPosition.isRightEar) {
+        ctx.scale(-1, 1);
+        ctx.translate(-2 * hearingAidX - hearingAidWidth, 0);
+      }
+      
+      // Draw hearing aid with color
+      ctx.drawImage(
+        hearingAidImg, 
+        hearingAidX, 
+        hearingAidY, 
+        hearingAidWidth, 
+        hearingAidHeight
+      );
+      
+      // Restore context (undoing any rotation and flipping)
+      ctx.restore();
+      
+      // Add product label
+      renderProductLabel(ctx, earPosition, hearingAid);
+    }
+  } catch (e) {
+    console.error('Error applying 2D hearing aid image, falling back to 3D model:', e);
+    
+    // If 2D image approach fails, fall back to 3D model rendering
+    const earPosition = detectEarPosition(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    
+    if (earPosition) {
+      try {
+        // Try 3D model approach as fallback
+        const hasWebGL = !!window.WebGLRenderingContext;
+        if (hasWebGL) {
+          const model = await loadModel();
+          renderHearingAid3D(ctx, model, earPosition, productId);
+          renderProductLabel(ctx, earPosition, hearingAid);
+        } else {
+          // If WebGL is not available, use simple 2D rendering
+          await renderHearingAid2D(
+            ctx, 
+            earPosition, 
+            hearingAid,
+            earPosition.x + (earPosition.width * 0.15),
+            earPosition.y + (earPosition.height * 0.25),
+            earPosition.width / 180,
+            productId
+          );
+          renderProductLabel(ctx, earPosition, hearingAid);
+        }
+      } catch (modelError) {
+        console.error('3D model fallback also failed:', modelError);
+        // If all else fails, use the simplest 2D rendering method
+        await renderHearingAid2D(
+          ctx, 
+          earPosition, 
+          hearingAid,
+          earPosition.x + (earPosition.width * 0.15),
+          earPosition.y + (earPosition.height * 0.25),
+          earPosition.width / 180,
+          productId
+        );
+        renderProductLabel(ctx, earPosition, hearingAid);
+      }
+    }
+  }
+  
+  // Convert the processed canvas to data URL
+  return canvas.toDataURL('image/jpeg', 0.95);
+};
+
 // Enhanced ear detection parameters
 const EAR_DETECTION = {
   // Minimum ear width in pixels
-  MIN_WIDTH: 40, // Reduced from 60 to be more lenient
+  MIN_WIDTH: 40,
   
   // Color ranges for skin detection (different ranges for different skin tones)
   COLOR_RANGES: [
@@ -150,13 +336,13 @@ const EAR_DETECTION = {
   ],
   
   // Edge detection threshold
-  EDGE_THRESHOLD: 20, // Reduced from 30 to detect more subtle edges
+  EDGE_THRESHOLD: 20,
   
   // Number of minimum ear pixels required
-  MIN_EAR_PIXELS: 100 // More lenient
+  MIN_EAR_PIXELS: 100
 };
 
-// Helper function to detect if a pixel might be part of an ear (based on multiple color ranges)
+// Helper function to detect if a pixel might be part of an ear
 const isEarPixel = (r: number, g: number, b: number): boolean => {
   return EAR_DETECTION.COLOR_RANGES.some(range => {
     return r >= range.rMin && r <= range.rMax &&
@@ -165,12 +351,30 @@ const isEarPixel = (r: number, g: number, b: number): boolean => {
   });
 };
 
-// Function to detect ear position in an image with enhanced accuracy
-const detectEarPosition = (imageData: ImageData): { x: number, y: number, width: number, height: number, rotation: number } | null => {
+// Interface for ear detection result
+interface EarPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  isRightEar: boolean;
+}
+
+// Function to detect ear position in an image
+const detectEarPosition = (imageData: ImageData): EarPosition => {
   const { data, width, height } = imageData;
+  
+  // Skip processing for tiny images
+  if (width < 100 || height < 100) {
+    console.log('Image too small for ear detection, using fallback position');
+    return createFallbackEarPosition(width, height);
+  }
   
   // Accumulate potential ear pixels
   const earPixels: { x: number, y: number }[] = [];
+  let skinPixelCount = 0;
+  let totalPixels = width * height;
   
   // First pass: collect potential ear pixels by color
   for (let y = 0; y < height; y++) {
@@ -182,23 +386,53 @@ const detectEarPosition = (imageData: ImageData): { x: number, y: number, width:
       
       if (isEarPixel(r, g, b)) {
         earPixels.push({ x, y });
+        skinPixelCount++;
       }
     }
   }
   
+  // If skin ratio is very low or very high, probably not a valid ear image
+  const skinPixelRatio = skinPixelCount / totalPixels;
+  if (skinPixelRatio < 0.01 || skinPixelRatio > 0.8) {
+    console.log(`Skin pixel ratio ${skinPixelRatio.toFixed(2)} outside expected range, using fallback position`);
+    return createFallbackEarPosition(width, height);
+  }
+  
   if (earPixels.length < EAR_DETECTION.MIN_EAR_PIXELS) {
-    // If not enough ear pixels found, return fallback position in the center
     console.log('Not enough ear pixels detected, using fallback center position');
     return createFallbackEarPosition(width, height);
   }
   
-  // Calculate bounds of ear pixels
+  // Determine skin region position (right side or left side of image)
+  let leftCount = 0;
+  let rightCount = 0;
+  const midX = width / 2;
+  
+  earPixels.forEach(pixel => {
+    if (pixel.x < midX) leftCount++;
+    else rightCount++;
+  });
+  
+  // Assume the side with more skin pixels is the side with the ear
+  const isRightEar = leftCount > rightCount;
+  
+  // Calculate bounds of ear pixels focused on the appropriate side
   let minX = width;
   let minY = height;
   let maxX = 0;
   let maxY = 0;
   
-  earPixels.forEach(pixel => {
+  // Filter pixels to the side where we expect the ear to be
+  const relevantPixels = earPixels.filter(pixel => 
+    isRightEar ? pixel.x < midX : pixel.x >= midX
+  );
+  
+  // If there aren't enough relevant pixels, use all pixels
+  const pixelsToUse = relevantPixels.length > EAR_DETECTION.MIN_EAR_PIXELS 
+    ? relevantPixels 
+    : earPixels;
+  
+  pixelsToUse.forEach(pixel => {
     minX = Math.min(minX, pixel.x);
     minY = Math.min(minY, pixel.y);
     maxX = Math.max(maxX, pixel.x);
@@ -210,274 +444,302 @@ const detectEarPosition = (imageData: ImageData): { x: number, y: number, width:
   
   // Basic validation of ear dimensions
   if (earWidth < EAR_DETECTION.MIN_WIDTH || earHeight < earWidth * 0.5) {
-    console.log('Ear dimensions validation failed, using fallback center position');
+    console.log('Ear dimensions validation failed, using fallback position');
     return createFallbackEarPosition(width, height);
   }
   
-  // Crude estimation of ear center and orientation
-  // Find the approximate center of the ear
+  // Calculate the ear center
   const centerX = minX + earWidth / 2;
   const centerY = minY + earHeight / 2;
   
-  // Calculate density distribution to estimate ear orientation
-  let topHalf = 0;
-  let bottomHalf = 0;
-  let leftHalf = 0;
-  let rightHalf = 0;
+  // Determine rotation (minimal rotation for 2D overlay approach)
+  const rotation = 0;
   
-  earPixels.forEach(pixel => {
-    if (pixel.y < centerY) topHalf++;
-    else bottomHalf++;
-    
-    if (pixel.x < centerX) leftHalf++;
-    else rightHalf++;
-  });
+  // Adjust positioning for hearing aid placement
+  // Position at the side where the ear connects to the head
+  const adjustedX = isRightEar
+    ? minX + earWidth * 0.2  // For right ear, position near left edge
+    : minX + earWidth * 0.8; // For left ear, position near right edge
   
-  // Estimate rotation based on density distribution
-  // This is a very crude approximation
-  let rotation = 0;
-  if (topHalf > bottomHalf * 1.5) {
-    rotation = -Math.PI / 6; // Ear tilted up
-  } else if (bottomHalf > topHalf * 1.5) {
-    rotation = Math.PI / 6; // Ear tilted down
-  }
+  const adjustedY = minY + earHeight * 0.35; // Position in upper third of ear area
   
-  // Adjust positioning based on ear shape analysis
-  const adjustedX = minX + earWidth * 0.3; // Position closer to the front of the ear
-  const adjustedY = minY + earHeight * 0.4; // Position in the middle upper part of the ear
+  console.log(`Detected ${isRightEar ? 'right' : 'left'} ear at: (${adjustedX.toFixed(0)}, ${adjustedY.toFixed(0)})`);
   
   return {
     x: adjustedX,
     y: adjustedY,
     width: earWidth,
     height: earHeight,
-    rotation: rotation
+    rotation: rotation,
+    isRightEar: isRightEar
   };
 };
 
 // Create a fallback ear position in the center of the image
-const createFallbackEarPosition = (width: number, height: number): { x: number, y: number, width: number, height: number, rotation: number } => {
+const createFallbackEarPosition = (width: number, height: number): EarPosition => {
   const earWidth = width / 4;  // Assume ear takes up about 1/4 of the width
   const earHeight = height / 3; // And about 1/3 of the height
   
+  // Randomly determine if this is a right or left ear
+  const isRightEar = Math.random() < 0.5;
+  
+  // Position slightly to the left or right of center depending on ear side
+  const offsetX = isRightEar ? -width / 10 : width / 10;
+  
   return {
-    x: width / 2 - earWidth / 2,
-    y: height / 2 - earHeight / 2,
+    x: width / 2 + offsetX,
+    y: height / 2 - earHeight / 4,
     width: earWidth,
     height: earHeight,
-    rotation: 0
+    rotation: 0,
+    isRightEar: isRightEar
   };
 };
 
-// Render AR overlay on the canvas based on video frame
-export const renderAROverlay = async (
-  imageData: ImageData, 
-  canvas: HTMLCanvasElement, 
-  hearingAid: HearingAid,
-  facingMode: 'user' | 'environment'
+// Render the 3D model of a hearing aid
+const renderHearingAid3D = async (
+  ctx: CanvasRenderingContext2D,
+  model: THREE.Group,
+  earPosition: EarPosition,
+  productId: string
 ): Promise<void> => {
-  if (!canvas || !hearingAid) return;
-  
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  
-  // Draw the original frame first
-  ctx.putImageData(imageData, 0, 0);
-  
   try {
-    // Detect ear in the frame
-    const earRegion = detectEarPosition(imageData);
+    // First try to use product image for more accurate rendering
+    const hearingAidImagePath = getHearingAidImagePath(productId);
+    const hearingAidImg = await loadImage(hearingAidImagePath);
     
-    if (earRegion) {
-      // Calculate hearing aid position based on ear region
-      const hearingAidX = facingMode === 'user'
-        ? earRegion.x - (earRegion.width * 0.1) // Adjust for front camera mirror effect
-        : earRegion.x + (earRegion.width * 0.15);
-        
-      const hearingAidY = earRegion.y + (earRegion.height * 0.25); // Position approximately at middle of ear
-      
-      // Calculate hearing aid dimensions proportional to ear size
-      const hearingAidScale = earRegion.width / 180; // Adjust scale factor as needed
-      
-      try {
-        // Try to use 3D model rendering if available
-        const hasWebGL = !!window.WebGLRenderingContext;
-        if (hasWebGL && window.innerWidth > 480) { // Use 3D model on larger screens with WebGL
-          try {
-            // Create an offscreen canvas for 3D rendering
-            const offscreenCanvas = document.createElement('canvas');
-            offscreenCanvas.width = 256;
-            offscreenCanvas.height = 256;
-            
-            // Set up Three.js renderer
-            const renderer = new THREE.WebGLRenderer({
-              canvas: offscreenCanvas,
-              alpha: true
-            });
-            renderer.setClearColor(0x000000, 0);
-            
-            // Set up scene and camera
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-            camera.position.z = 5;
-            
-            // Add lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(1, 1, 1);
-            scene.add(directionalLight);
-            
-            // Add hearing aid model
-            try {
-              const model = await loadModel();
-              const modelClone = model.clone();
-              
-              // Apply color to model material
-              const color = hearingAid.colors && hearingAid.colors.length > 0 
-                ? hearingAid.colors[0] 
-                : '#A0A0A0';
-                
-              modelClone.traverse((object) => {
-                if ((object as THREE.Mesh).isMesh) {
-                  const mesh = object as THREE.Mesh;
-                  if (mesh.material) {
-                    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-                    materials.forEach(material => {
-                      if (material instanceof THREE.MeshStandardMaterial) {
-                        material.color.set(color);
-                      }
-                    });
-                  }
-                }
-              });
-              
-              // Apply rotation to match ear orientation
-              modelClone.rotation.y = Math.PI / 2;
-              modelClone.rotation.x = earRegion.rotation;
-              
-              // Apply scale
-              const scaleFactor = 0.8 * hearingAidScale;
-              modelClone.scale.set(scaleFactor, scaleFactor, scaleFactor);
-              
-              scene.add(modelClone);
-              
-              // Render the model
-              renderer.render(scene, camera);
-              
-              // Draw the rendered model onto the main canvas
-              ctx.drawImage(
-                offscreenCanvas, 
-                0, 0, 256, 256,
-                hearingAidX - 128 * hearingAidScale, 
-                hearingAidY - 128 * hearingAidScale,
-                256 * hearingAidScale, 
-                256 * hearingAidScale
-              );
-              
-              // Clean up
-              scene.remove(modelClone);
-              renderer.dispose();
-              
-              // Skip 2D rendering when 3D model was used
-              renderProductLabel(ctx, earRegion, hearingAid);
-              return;
-            } catch (modelError) {
-              console.error('Error rendering 3D model, falling back to 2D:', modelError);
-              // Continue to 2D rendering fallback
-            }
-          } catch (threeError) {
-            console.error('Error setting up 3D renderer, falling back to 2D:', threeError);
-            // Continue to 2D rendering fallback
-          }
-        }
-      } catch (webglError) {
-        console.error('WebGL not supported, using 2D fallback:', webglError);
-        // Continue with 2D fallback
-      }
-      
-      // 2D fallback rendering
-      renderHearingAid2D(ctx, earRegion, hearingAid, hearingAidX, hearingAidY, hearingAidScale, facingMode);
-      renderProductLabel(ctx, earRegion, hearingAid);
+    // If image loaded successfully, use 2D rendering method
+    const hearingAidWidth = earPosition.width * 1.2;
+    const hearingAidHeight = hearingAidWidth * (hearingAidImg.height / hearingAidImg.width);
+    
+    // Position the hearing aid at the ear
+    const hearingAidX = earPosition.isRightEar 
+      ? earPosition.x - hearingAidWidth * 0.8
+      : earPosition.x + earPosition.width * 0.3;
+    
+    const hearingAidY = earPosition.y - hearingAidHeight * 0.3;
+    
+    // Save context for transformations
+    ctx.save();
+    
+    // Apply any rotation needed
+    if (earPosition.rotation !== 0) {
+      const centerX = hearingAidX + hearingAidWidth / 2;
+      const centerY = hearingAidY + hearingAidHeight / 2;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(earPosition.rotation);
+      ctx.translate(-centerX, -centerY);
     }
+    
+    // For right ear, we need to flip the image horizontally
+    if (earPosition.isRightEar) {
+      ctx.scale(-1, 1);
+      ctx.translate(-2 * hearingAidX - hearingAidWidth, 0);
+    }
+    
+    // Draw the hearing aid image
+    ctx.drawImage(
+      hearingAidImg, 
+      hearingAidX, 
+      hearingAidY, 
+      hearingAidWidth, 
+      hearingAidHeight
+    );
+    
+    // Restore context
+    ctx.restore();
+    
   } catch (error) {
-    console.error('Error in ear detection or rendering:', error);
-    // Don't attempt to render anything on error
+    console.error('Failed to use product image for 3D fallback, using generic 3D model:', error);
+    
+    // Fall back to generic 3D model with default color
+    const colorHex = '#A0A0A0'; // Default grey color
+    
+    // Create an offscreen canvas for 3D rendering
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 256;
+    offscreenCanvas.height = 256;
+    
+    // Set up Three.js renderer
+    const renderer = new THREE.WebGLRenderer({
+      canvas: offscreenCanvas,
+      alpha: true
+    });
+    renderer.setClearColor(0x000000, 0);
+    
+    // Set up scene and camera
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.z = 5;
+    
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    
+    // Clone the model
+    const modelClone = model.clone();
+    
+    // Apply color to model material
+    modelClone.traverse((object) => {
+      if ((object as THREE.Mesh).isMesh) {
+        const mesh = object as THREE.Mesh;
+        if (mesh.material) {
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          materials.forEach(material => {
+            if (material instanceof THREE.MeshStandardMaterial) {
+              material.color.set(colorHex);
+            }
+          });
+        }
+      }
+    });
+    
+    // Apply rotation to match ear orientation
+    // Flip the model horizontally based on which ear we're rendering for
+    modelClone.rotation.y = earPosition.isRightEar ? -Math.PI / 2 : Math.PI / 2;
+    modelClone.rotation.x = earPosition.rotation;
+    
+    // Apply scale
+    const hearingAidScale = earPosition.width / 180;
+    const scaleFactor = 0.8 * hearingAidScale;
+    modelClone.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    
+    scene.add(modelClone);
+    
+    // Render the model
+    renderer.render(scene, camera);
+    
+    // Calculate position to draw the rendered model
+    const hearingAidX = earPosition.x;
+    const hearingAidY = earPosition.y;
+    
+    // Draw the rendered model onto the main canvas
+    ctx.drawImage(
+      offscreenCanvas, 
+      0, 0, 256, 256,
+      hearingAidX - 128 * hearingAidScale, 
+      hearingAidY - 128 * hearingAidScale,
+      256 * hearingAidScale, 
+      256 * hearingAidScale
+    );
+    
+    // Clean up
+    scene.remove(modelClone);
+    renderer.dispose();
   }
 };
 
 // Render a 2D hearing aid
-const renderHearingAid2D = (
+const renderHearingAid2D = async (
   ctx: CanvasRenderingContext2D,
-  earRegion: { x: number, y: number, width: number, height: number, rotation: number },
+  earPosition: EarPosition,
   hearingAid: HearingAid,
   hearingAidX: number,
   hearingAidY: number,
   hearingAidScale: number,
-  facingMode: 'user' | 'environment'
-): void => {
-  // Get color from hearing aid data
-  const color = hearingAid.colors && hearingAid.colors.length > 0 
-    ? hearingAid.colors[0] 
-    : '#A0A0A0';
-  
-  const bodyWidth = hearingAidScale * 25;
-  const bodyHeight = hearingAidScale * 40;
-  
-  // Save current context state
-  ctx.save();
-  
-  // Move to hearing aid position and apply rotation
-  ctx.translate(hearingAidX, hearingAidY);
-  ctx.rotate(earRegion.rotation);
-  
-  // Draw hearing aid body
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, bodyWidth, bodyHeight, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Draw hearing aid details
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-  ctx.beginPath();
-  ctx.ellipse(-bodyWidth * 0.2, -bodyHeight * 0.2, bodyWidth * 0.4, bodyHeight * 0.3, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Draw hearing aid tube
-  const tubeDirection = facingMode === 'user' ? -1 : 1;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = bodyWidth * 0.3;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(0, bodyHeight * 0.5);
-  ctx.bezierCurveTo(
-    bodyWidth * 0.5 * tubeDirection, bodyHeight * 0.7,
-    bodyWidth * 0.8 * tubeDirection, bodyHeight * 0.9,
-    bodyWidth * tubeDirection, bodyHeight
-  );
-  ctx.stroke();
-  
-  // Add highlight to make it look more 3D
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.beginPath();
-  ctx.ellipse(-bodyWidth * 0.3, -bodyHeight * 0.3, bodyWidth * 0.2, bodyHeight * 0.1, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Restore context
-  ctx.restore();
+  productId: string
+): Promise<void> => {
+  try {
+    // Try to load the product-specific image
+    const hearingAidImagePath = getHearingAidImagePath(productId);
+    const hearingAidImg = await loadImage(hearingAidImagePath);
+    
+    // Calculate dimensions
+    const hearingAidWidth = earPosition.width * hearingAidScale * 5; // Scale up from the base scale
+    const hearingAidHeight = hearingAidWidth * (hearingAidImg.height / hearingAidImg.width);
+    
+    // Save context for transformations
+    ctx.save();
+    
+    // Position and apply rotation
+    ctx.translate(hearingAidX, hearingAidY);
+    ctx.rotate(earPosition.rotation);
+    
+    // For right ear, flip the image horizontally
+    if (earPosition.isRightEar) {
+      ctx.scale(-1, 1);
+    }
+    
+    // Draw the image
+    ctx.drawImage(
+      hearingAidImg,
+      -hearingAidWidth / 2,
+      -hearingAidHeight / 2,
+      hearingAidWidth,
+      hearingAidHeight
+    );
+    
+    // Restore context
+    ctx.restore();
+  } catch (error) {
+    console.error('Failed to load product image for 2D rendering, using fallback drawing:', error);
+    
+    // Fall back to basic drawing if image fails to load
+    const color = hearingAid.colors && hearingAid.colors.length > 0 
+      ? hearingAid.colors[0] 
+      : '#A0A0A0';
+    
+    const bodyWidth = hearingAidScale * 25;
+    const bodyHeight = hearingAidScale * 40;
+    
+    // Save current context state
+    ctx.save();
+    
+    // Move to hearing aid position and apply rotation
+    ctx.translate(hearingAidX, hearingAidY);
+    ctx.rotate(earPosition.rotation);
+    
+    // Draw hearing aid body
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, bodyWidth, bodyHeight, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw hearing aid details
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(-bodyWidth * 0.2, -bodyHeight * 0.2, bodyWidth * 0.4, bodyHeight * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw hearing aid tube - direction depends on which ear
+    const tubeDirection = earPosition.isRightEar ? -1 : 1;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = bodyWidth * 0.3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, bodyHeight * 0.5);
+    ctx.bezierCurveTo(
+      bodyWidth * 0.5 * tubeDirection, bodyHeight * 0.7,
+      bodyWidth * 0.8 * tubeDirection, bodyHeight * 0.9,
+      bodyWidth * tubeDirection, bodyHeight
+    );
+    ctx.stroke();
+    
+    // Add highlight to make it look more 3D
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(-bodyWidth * 0.3, -bodyHeight * 0.3, bodyWidth * 0.2, bodyHeight * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Restore context
+    ctx.restore();
+  }
 };
 
 // Render product label
 const renderProductLabel = (
   ctx: CanvasRenderingContext2D,
-  earRegion: { x: number, y: number, width: number, height: number, rotation: number },
+  earPosition: EarPosition,
   hearingAid: HearingAid
 ): void => {
-  const labelWidth = earRegion.width;
+  const labelWidth = earPosition.width;
   const labelHeight = 30;
-  const labelX = earRegion.x;
-  const labelY = earRegion.y + earRegion.height + 10;
+  const labelX = earPosition.x - labelWidth / 2;
+  const labelY = earPosition.y + earPosition.height + 10;
   
   // Draw label background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -508,166 +770,5 @@ export const captureVideoFrame = (video: HTMLVideoElement): string => {
   ctx.drawImage(video, 0, 0);
   
   // Convert to data URL
-  return canvas.toDataURL('image/jpeg', 0.9);
-};
-
-// Load and apply hearing aid model to an image
-export const applyHearingAidToImage = async (
-  imageDataUrl: string,
-  hearingAid: HearingAid,
-  colorHex: string
-): Promise<string> => {
-  // Create an image element to load the source image
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.src = imageDataUrl;
-  
-  // Wait for the image to load
-  await new Promise<void>((resolve) => {
-    img.onload = () => resolve();
-  });
-  
-  // Create a canvas to process the image
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Could not get canvas context');
-  
-  // Draw the image to the canvas
-  ctx.drawImage(img, 0, 0);
-  
-  // Get image data for ear detection
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  
-  // Detect ear in the image
-  const earRegion = detectEarPosition(imageData);
-  
-  if (earRegion) {
-    try {
-      // Try 3D model approach first
-      const hasWebGL = !!window.WebGLRenderingContext;
-      if (hasWebGL) {
-        try {
-          // Create an offscreen canvas for 3D rendering
-          const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = 256;
-          offscreenCanvas.height = 256;
-          
-          // Set up Three.js renderer
-          const renderer = new THREE.WebGLRenderer({
-            canvas: offscreenCanvas,
-            alpha: true
-          });
-          renderer.setClearColor(0x000000, 0);
-          
-          // Set up scene and camera
-          const scene = new THREE.Scene();
-          const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-          camera.position.z = 5;
-          
-          // Add lighting
-          const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-          scene.add(ambientLight);
-          
-          const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-          directionalLight.position.set(1, 1, 1);
-          scene.add(directionalLight);
-          
-          // Add hearing aid model
-          const model = await loadModel();
-          const modelClone = model.clone();
-          
-          // Apply color to model material
-          modelClone.traverse((object) => {
-            if ((object as THREE.Mesh).isMesh) {
-              const mesh = object as THREE.Mesh;
-              if (mesh.material) {
-                const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-                materials.forEach(material => {
-                  if (material instanceof THREE.MeshStandardMaterial) {
-                    material.color.set(colorHex);
-                  }
-                });
-              }
-            }
-          });
-          
-          // Apply rotation to match ear orientation
-          modelClone.rotation.y = Math.PI / 2;
-          modelClone.rotation.x = earRegion.rotation;
-          
-          // Apply scale
-          const hearingAidScale = earRegion.width / 180;
-          const scaleFactor = 0.8 * hearingAidScale;
-          modelClone.scale.set(scaleFactor, scaleFactor, scaleFactor);
-          
-          scene.add(modelClone);
-          
-          // Render the model
-          renderer.render(scene, camera);
-          
-          // Calculate hearing aid position
-          const hearingAidX = earRegion.x + (earRegion.width * 0.15);
-          const hearingAidY = earRegion.y + (earRegion.height * 0.25);
-          
-          // Draw the rendered model onto the main canvas
-          ctx.drawImage(
-            offscreenCanvas, 
-            0, 0, 256, 256,
-            hearingAidX - 128 * hearingAidScale, 
-            hearingAidY - 128 * hearingAidScale,
-            256 * hearingAidScale, 
-            256 * hearingAidScale
-          );
-          
-          // Clean up
-          scene.remove(modelClone);
-          renderer.dispose();
-        } catch (e) {
-          console.error('3D model rendering failed, falling back to 2D:', e);
-          // If 3D rendering fails, fall back to 2D
-          renderHearingAid2D(
-            ctx, 
-            earRegion, 
-            hearingAid,
-            earRegion.x + (earRegion.width * 0.15),
-            earRegion.y + (earRegion.height * 0.25),
-            earRegion.width / 180,
-            'environment'
-          );
-        }
-      } else {
-        // If WebGL is not supported, use 2D rendering
-        renderHearingAid2D(
-          ctx, 
-          earRegion, 
-          hearingAid,
-          earRegion.x + (earRegion.width * 0.15),
-          earRegion.y + (earRegion.height * 0.25),
-          earRegion.width / 180,
-          'environment'
-        );
-      }
-    } catch (error) {
-      console.error('Error in ear visualization:', error);
-      // Fall back to simple 2D rendering on error
-      renderHearingAid2D(
-        ctx, 
-        earRegion, 
-        hearingAid,
-        earRegion.x + (earRegion.width * 0.15),
-        earRegion.y + (earRegion.height * 0.25),
-        earRegion.width / 180,
-        'environment'
-      );
-    }
-    
-    // Add product label
-    renderProductLabel(ctx, earRegion, hearingAid);
-  }
-  
-  // Convert the processed canvas to data URL
   return canvas.toDataURL('image/jpeg', 0.9);
 }; 

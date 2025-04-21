@@ -129,23 +129,61 @@ const TryOnARPage: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       setArError(null);
+      
+      // Validate file
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        setArError('Image is too large. Please upload an image smaller than 10MB.');
+        return;
+      }
+      
+      // Check if it's an image
+      if (!file.type.startsWith('image/')) {
+        setArError('Please upload a valid image file.');
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const imageDataUrl = e.target?.result as string;
-        setUploadedImage(imageDataUrl);
-        setIsProcessing(true);
-        
         try {
+          const imageDataUrl = e.target?.result as string;
+          
+          if (!imageDataUrl || typeof imageDataUrl !== 'string') {
+            throw new Error('Failed to read image file');
+          }
+          
+          setUploadedImage(imageDataUrl);
+          setIsProcessing(true);
+          
+          console.log('Processing image with product ID:', productId);
+          
           // Process the image to overlay the hearing aid
           const result = await processARImage(imageDataUrl, productId || '');
           setProcessedImage(result);
-        } catch (error) {
-          console.error('Error processing image:', error);
-          setArError('Failed to process image. Please try a different photo or check your connection.');
+          console.log('Image processing completed successfully');
+        } catch (error: any) {
+          console.error('Error in AR processing:', error);
+          let errorMessage = 'Failed to process image. Please try a different photo.';
+          
+          // More specific error messages based on error type
+          if (error.message && error.message.includes('network')) {
+            errorMessage = 'Network error. Please check your internet connection and try again.';
+          } else if (error.message && error.message.includes('timeout')) {
+            errorMessage = 'Processing timed out. Please try a different, less complex image.';
+          } else if (error.message) {
+            errorMessage = `Error: ${error.message}`;
+          }
+          
+          setArError(errorMessage);
         } finally {
           setIsProcessing(false);
         }
       };
+      
+      reader.onerror = () => {
+        setArError('Failed to read the image file. Please try another image.');
+        setIsProcessing(false);
+      };
+      
       reader.readAsDataURL(file);
     }
   };
@@ -180,38 +218,63 @@ const TryOnARPage: React.FC = () => {
         return;
       }
 
-      // Request camera access with more specific constraints
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
+      // Determine if we should prefer the back camera
+      // On mobile, prefer environment facing camera first (better for AR)
+      const preferredCamera = facingMode === 'environment' ? 
+        videoDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment')) : 
+        undefined;
+
+      // Build constraints object based on device capabilities
+      let constraints: MediaStreamConstraints;
+      if (preferredCamera && facingMode === 'environment') {
+        // If we found a specific back camera, use its deviceId
+        constraints = {
+          video: {
+            deviceId: { exact: preferredCamera.deviceId },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+        console.log('Using specific back camera:', preferredCamera.label);
+      } else {
+        // Otherwise use facingMode constraint
+        constraints = {
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+        console.log('Using facingMode constraint:', facingMode);
+      }
 
       // Get camera stream
+      console.log('Requesting camera with constraints:', JSON.stringify(constraints));
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       
       // Check if video ref still exists (component not unmounted)
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        console.log('Video stream attached to video element');
         
         // Set up video element event handlers
         videoRef.current.onloadedmetadata = () => {
           if (!videoRef.current) return;
           
+          const videoWidth = videoRef.current.videoWidth;
+          const videoHeight = videoRef.current.videoHeight;
+          console.log('Video metadata loaded. Dimensions:', videoWidth, 'x', videoHeight);
+          
           // Update canvas dimensions once video metadata is loaded
           if (canvasRef.current && arCanvasRef.current) {
-            // Match canvas size to actual video dimensions for optimal rendering
-            const videoWidth = videoRef.current.videoWidth;
-            const videoHeight = videoRef.current.videoHeight;
-            
             canvasRef.current.width = videoWidth;
             canvasRef.current.height = videoHeight;
             arCanvasRef.current.width = videoWidth;
             arCanvasRef.current.height = videoHeight;
+            console.log('Canvas dimensions updated to match video');
           }
           
           // Start processing video frames
@@ -226,6 +289,7 @@ const TryOnARPage: React.FC = () => {
         
         // Handle video playing
         videoRef.current.onplay = () => {
+          console.log('Video started playing');
           if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
           }
@@ -239,10 +303,12 @@ const TryOnARPage: React.FC = () => {
         };
         
         // Force play the video (needed for some mobile browsers)
-        videoRef.current.play().catch(err => {
-          console.error('Error playing video:', err);
-          setArError('Could not start camera stream. Please check permissions and try again.');
-        });
+        videoRef.current.play()
+          .then(() => console.log('Video playback started successfully'))
+          .catch(err => {
+            console.error('Error playing video:', err);
+            setArError('Could not start camera stream. Please check permissions and try again.');
+          });
       }
       
       setCameraPermission(true);
@@ -254,6 +320,35 @@ const TryOnARPage: React.FC = () => {
       } else if ((error as DOMException).name === 'NotFoundError') {
         setVideoAvailable(false);
         setArError('Camera not found. Please ensure your device has a working camera.');
+      } else if ((error as DOMException).name === 'NotReadableError' || (error as DOMException).name === 'AbortError') {
+        // Handle camera in use by another application
+        setArError('Camera is in use by another application or not available. Please close other camera apps and try again.');
+      } else if ((error as DOMException).name === 'OverconstrainedError') {
+        // Handle when camera doesn't support the requested constraints
+        console.log('Camera constraints not supported, trying with simplified constraints');
+        try {
+          // Try again with minimal constraints
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+          }
+          
+          const simpleStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+          
+          streamRef.current = simpleStream;
+          
+          if (videoRef.current) {
+            videoRef.current.srcObject = simpleStream;
+            videoRef.current.play().catch(err => console.error('Error playing video with simple constraints:', err));
+          }
+          
+          setCameraPermission(true);
+        } catch (fallbackError) {
+          console.error('Error with fallback camera initialization:', fallbackError);
+          setArError('Your camera doesn\'t support the required features. Please try a different device or browser.');
+        }
       } else {
         setArError(`Camera error: ${(error as Error).message || 'Unknown error'}`);
       }
