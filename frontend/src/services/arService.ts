@@ -771,4 +771,119 @@ export const captureVideoFrame = (video: HTMLVideoElement): string => {
   
   // Convert to data URL
   return canvas.toDataURL('image/jpeg', 0.9);
+};
+
+/**
+ * Render AR overlay directly onto a canvas from image data
+ * This function is used for real-time camera feed processing 
+ */
+export const renderAROverlay = async (
+  imageData: ImageData,
+  canvas: HTMLCanvasElement,
+  hearingAid: HearingAid,
+  facingMode: 'user' | 'environment' = 'environment'
+): Promise<void> => {
+  try {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get canvas context');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw original image data
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Detect ear position
+    const earPosition = detectEarPosition(imageData);
+    
+    if (earPosition) {
+      // Determine if we should flip the ear detection based on camera facing mode
+      // 'user' is front-facing camera (mirror image), 'environment' is back camera
+      const isRightEar = facingMode === 'user' ? !earPosition.isRightEar : earPosition.isRightEar;
+      
+      // Update ear position with correct left/right detection
+      earPosition.isRightEar = isRightEar;
+      
+      try {
+        // Get product-specific hearing aid image path
+        const hearingAidImagePath = getHearingAidImagePath(hearingAid.id);
+        const hearingAidImg = await loadImage(hearingAidImagePath);
+        
+        // Calculate size for hearing aid image
+        const hearingAidWidth = earPosition.width * 1.2; // Slightly larger than ear
+        const hearingAidHeight = hearingAidWidth * (hearingAidImg.height / hearingAidImg.width);
+        
+        // Position the hearing aid next to the ear
+        const hearingAidX = earPosition.isRightEar 
+          ? earPosition.x - hearingAidWidth * 0.8  // For right ear, position to the left
+          : earPosition.x + earPosition.width * 0.3; // For left ear, position to the right
+        
+        const hearingAidY = earPosition.y - hearingAidHeight * 0.3; // Position slightly above ear center
+        
+        // Save context for rotation
+        ctx.save();
+        
+        // Apply rotation if needed
+        if (earPosition.rotation !== 0) {
+          const centerX = hearingAidX + hearingAidWidth / 2;
+          const centerY = hearingAidY + hearingAidHeight / 2;
+          ctx.translate(centerX, centerY);
+          ctx.rotate(earPosition.rotation);
+          ctx.translate(-centerX, -centerY);
+        }
+        
+        // For right ear, we need to flip the image horizontally
+        if (earPosition.isRightEar) {
+          ctx.scale(-1, 1);
+          ctx.translate(-2 * hearingAidX - hearingAidWidth, 0);
+        }
+        
+        // Draw hearing aid image
+        ctx.drawImage(
+          hearingAidImg, 
+          hearingAidX, 
+          hearingAidY, 
+          hearingAidWidth, 
+          hearingAidHeight
+        );
+        
+        // Restore context
+        ctx.restore();
+        
+        // Add product label
+        renderProductLabel(ctx, earPosition, hearingAid);
+      } catch (error) {
+        console.error('Error rendering hearing aid image:', error);
+        
+        // Fallback to simple 2D drawing if image loading fails
+        await renderHearingAid2D(
+          ctx,
+          earPosition,
+          hearingAid,
+          earPosition.x + (earPosition.width * 0.15),
+          earPosition.y + (earPosition.height * 0.25),
+          earPosition.width / 180,
+          hearingAid.id
+        );
+        renderProductLabel(ctx, earPosition, hearingAid);
+      }
+    } else {
+      // If no ear position detected, draw a helper message
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(
+        'Position your ear in frame for hearing aid overlay',
+        canvas.width / 2,
+        canvas.height - 20
+      );
+    }
+  } catch (error) {
+    console.error('Error in renderAROverlay:', error);
+    // Log error but don't rethrow to keep video processing going
+  }
 }; 
