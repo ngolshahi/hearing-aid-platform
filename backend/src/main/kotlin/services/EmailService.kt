@@ -98,7 +98,7 @@ class EmailService {
                             <div class="otp">$otp</div>
                             <p>Or click the button below to verify your email:</p>
                             <div style="text-align: center;">
-                                <a href="${dotenv["APP_URL"] ?: "http://localhost:3000"}/verify?email=${email}&token=${otp}" class="verify-button">
+                                <a href="${dotenv["APP_URL"] ?: "http://localhost:3000"}/verify?email=${email}&token=${otp}" class="verify-button" style="color: white;">
                                     Verify Email
                                 </a>
                             </div>

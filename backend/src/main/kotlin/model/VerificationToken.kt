@@ -7,9 +7,9 @@ import java.time.Instant
 @Serializable
 data class VerificationToken(
     val id: String = java.util.UUID.randomUUID().toString(),
-    val email: String,
-    val token: String,
+    val email: String = "",
+    val token: String = "",
     @Contextual
-    val expiryDate: Instant,
+    val expiryDate: Instant = Instant.now(),
     val verified: Boolean = false
 ) 
