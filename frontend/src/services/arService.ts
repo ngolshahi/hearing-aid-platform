@@ -186,6 +186,9 @@ export const applyHearingAidToImage = async (
   // Draw the original image to the canvas
   ctx.drawImage(img, 0, 0);
   
+  // Get image data for ear detection
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  
   try {
     // Get product-specific hearing aid image path
     const hearingAidImagePath = getHearingAidImagePath(productId);
@@ -194,7 +197,7 @@ export const applyHearingAidToImage = async (
     const hearingAidImg = await loadImage(hearingAidImagePath);
     
     // Calculate ear position - for 2D image we'll use a simple detection
-    const earPosition = detectEarPosition(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    const earPosition = detectEarPosition(imageData);
     
     // Only proceed if we detected an ear position
     if (earPosition) {
@@ -259,82 +262,68 @@ export const applyHearingAidToImage = async (
         renderProductLabel(ctx, earPosition, hearingAid);
       }
     } else {
-      // If no ear detected, show an error message on the image
+      // If no ear detected, show a clear error message on the image
       console.error('No ear detected in the image');
       
-      // Draw error message
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+      // Draw error message with a nicer presentation
+      const bgHeight = 80;
+      const bgY = canvas.height / 2 - bgHeight / 2;
       
+      // Semi-transparent background for better readability
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, bgY, canvas.width, bgHeight);
+      
+      // White text
       ctx.fillStyle = 'white';
-      ctx.font = '16px Arial';
+      ctx.font = '18px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      
+      // Multi-line message for better clarity
       ctx.fillText(
-        'No ear detected. Please try a different image.',
+        'No ear detected in this image.',
         canvas.width / 2,
-        canvas.height - 20
+        bgY + bgHeight / 2 - 15
+      );
+      
+      ctx.font = '16px Arial';
+      ctx.fillText(
+        'Please try a photo where the ear is clearly visible.',
+        canvas.width / 2,
+        bgY + bgHeight / 2 + 15
       );
     }
   } catch (e) {
-    console.error('Error applying 2D hearing aid image, falling back to 3D model:', e);
+    console.error('Error applying 2D hearing aid image:', e);
     
-    // If 2D image approach fails, fall back to 3D model rendering
-    const earPosition = detectEarPosition(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    // If 2D image approach fails, just show the error
+    // Draw error message with a nicer presentation
+    const bgHeight = 80;
+    const bgY = canvas.height / 2 - bgHeight / 2;
     
-    if (earPosition) {
-      try {
-        // Try 3D model approach as fallback
-        const hasWebGL = !!window.WebGLRenderingContext;
-        if (hasWebGL) {
-          const model = await loadModel();
-          renderHearingAid3D(ctx, model, earPosition, productId);
-          renderProductLabel(ctx, earPosition, hearingAid);
-        } else {
-          // If WebGL is not available, use simple 2D rendering
-          await renderHearingAid2D(
-            ctx, 
-            earPosition, 
-            hearingAid,
-            earPosition.x + (earPosition.width * (earPosition.isRightEar ? 0.6 : -0.1)),
-            earPosition.y - (earPosition.height * 0.1),
-            earPosition.width / 280, // Make it smaller
-            productId
-          );
-          renderProductLabel(ctx, earPosition, hearingAid);
-        }
-      } catch (modelError) {
-        console.error('3D model fallback also failed:', modelError);
-        // If all else fails, use the simplest 2D rendering method
-        await renderHearingAid2D(
-          ctx, 
-          earPosition, 
-          hearingAid,
-          earPosition.x + (earPosition.width * (earPosition.isRightEar ? 0.6 : -0.1)),
-          earPosition.y - (earPosition.height * 0.1),
-          earPosition.width / 280, // Make it smaller
-          productId
-        );
-        renderProductLabel(ctx, earPosition, hearingAid);
-      }
-    } else {
-      // If no ear detected, show an error message
-      console.error('No ear detected in the image after fallback attempts');
-      
-      // Draw error message
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
-      
-      ctx.fillStyle = 'white';
-      ctx.font = '16px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(
-        'No ear detected. Please try a different image.',
-        canvas.width / 2,
-        canvas.height - 20
-      );
-    }
+    // Semi-transparent background for better readability
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, bgY, canvas.width, bgHeight);
+    
+    // White text
+    ctx.fillStyle = 'white';
+    ctx.font = '18px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Multi-line message for better clarity
+    ctx.fillText(
+      'Unable to process this image.',
+      canvas.width / 2,
+      bgY + bgHeight / 2 - 15
+    );
+    
+    ctx.font = '16px Arial';
+    ctx.fillText(
+      'Please try a different photo with better lighting.',
+      canvas.width / 2,
+      bgY + bgHeight / 2 + 15
+    );
   }
   
   // Convert the processed canvas to data URL
@@ -422,19 +411,24 @@ const detectEarPosition = (imageData: ImageData): EarPosition | null => {
   
   // Skip processing for tiny images
   if (width < 100 || height < 100) {
-    console.log('Image too small for ear detection, using fallback position');
-    return createIntelligentFallbackPosition(width, height, [], false);
+    console.log('Image too small for ear detection');
+    return null; // Return null instead of fallback position
   }
   
-  // Special handling for close-up ear images (like the one shared by the user)
-  // These typically have the ear canal near the center and fill most of the frame
+  // Enhanced detection for close-up ear images (like the one shared by the user)
   const isCentralEarCanal = isCentralDarkSpot(imageData);
+  
   if (isCentralEarCanal) {
     console.log('Detected close-up ear with central ear canal');
-    return createCloseUpEarPosition(width, height);
+    
+    // For close-up images, we need to determine if this is a left or right ear
+    // Analyze the skin distribution to make a better guess
+    const skinDistribution = analyzeEarSides(imageData);
+    
+    return createCloseUpEarPosition(width, height, skinDistribution.isRightEar);
   }
   
-  // Regular detection logic continues...
+  // Regular detection logic for non-close-up images
   const earPixels: { x: number, y: number }[] = [];
   let skinPixelCount = 0;
   let totalPixels = width * height;
@@ -459,14 +453,13 @@ const detectEarPosition = (imageData: ImageData): EarPosition | null => {
   console.log(`Detected skin pixel ratio: ${skinPixelRatio.toFixed(2)}`);
   
   if (skinPixelRatio < EAR_DETECTION.MIN_SKIN_RATIO || skinPixelRatio > EAR_DETECTION.MAX_SKIN_RATIO) {
-    console.log(`Skin pixel ratio ${skinPixelRatio.toFixed(2)} outside expected range, using intelligent fallback position`);
-    // Use more intelligent fallback that tries to use the detected skin pixels even if the ratio is off
-    return createIntelligentFallbackPosition(width, height, earPixels, skinPixelRatio > 0.5);
+    console.log(`Skin pixel ratio ${skinPixelRatio.toFixed(2)} outside expected range, can't detect ear`);
+    return null; // Return null instead of fallback position
   }
   
   if (earPixels.length < EAR_DETECTION.MIN_EAR_PIXELS) {
-    console.log('Not enough ear pixels detected, using fallback position');
-    return createIntelligentFallbackPosition(width, height, earPixels, skinPixelRatio > 0.5);
+    console.log('Not enough ear pixels detected');
+    return null; // Return null instead of fallback position
   }
   
   // Determine skin region position (right side or left side of image)
@@ -512,8 +505,8 @@ const detectEarPosition = (imageData: ImageData): EarPosition | null => {
   
   // Basic validation of ear dimensions
   if (earWidth < EAR_DETECTION.MIN_WIDTH || earHeight < earWidth * 0.5) {
-    console.log('Ear dimensions validation failed, using intelligent fallback position');
-    return createIntelligentFallbackPosition(width, height, earPixels, skinPixelRatio > 0.5);
+    console.log('Ear dimensions validation failed');
+    return null; // Return null instead of fallback position
   }
   
   // Calculate the ear center
@@ -524,7 +517,6 @@ const detectEarPosition = (imageData: ImageData): EarPosition | null => {
   const rotation = 0;
   
   // Adjust positioning for hearing aid placement
-  // Position at the side where the ear connects to the head
   const adjustedX = isRightEar
     ? minX + earWidth * 0.2  // For right ear, position near left edge
     : minX + earWidth * 0.8; // For left ear, position near right edge
@@ -543,6 +535,51 @@ const detectEarPosition = (imageData: ImageData): EarPosition | null => {
   };
 };
 
+// Analyze both sides of an image to determine if it's a left or right ear
+const analyzeEarSides = (imageData: ImageData): { isRightEar: boolean } => {
+  const { data, width, height } = imageData;
+  
+  // Split the image into left and right halves
+  const leftHalf: number[] = [];
+  const rightHalf: number[] = [];
+  
+  const midX = Math.floor(width / 2);
+  
+  // For close-up ear images, the lighter area is typically the outside of the ear
+  // and the darker area is typically where the ear connects to the head
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      
+      // Calculate the brightness
+      const brightness = (r + g + b) / 3;
+      
+      if (x < midX) {
+        leftHalf.push(brightness);
+      } else {
+        rightHalf.push(brightness);
+      }
+    }
+  }
+  
+  // Calculate average brightness for each half
+  const leftAvg = leftHalf.reduce((sum, val) => sum + val, 0) / leftHalf.length;
+  const rightAvg = rightHalf.reduce((sum, val) => sum + val, 0) / rightHalf.length;
+  
+  console.log(`Left half avg brightness: ${leftAvg.toFixed(2)}, Right half: ${rightAvg.toFixed(2)}`);
+  
+  // For a right ear, the right side of the image is typically brighter
+  // For a left ear, the left side of the image is typically brighter
+  const isRightEar = rightAvg > leftAvg;
+  
+  console.log(`Based on brightness analysis, detected a ${isRightEar ? 'right' : 'left'} ear`);
+  
+  return { isRightEar };
+};
+
 // Check if image has a central dark spot (ear canal in close-up images)
 const isCentralDarkSpot = (imageData: ImageData): boolean => {
   const { data, width, height } = imageData;
@@ -556,6 +593,9 @@ const isCentralDarkSpot = (imageData: ImageData): boolean => {
   // Look for dark spot in the center region
   let darkPixelCount = 0;
   let totalCheckedPixels = 0;
+  
+  // Also check for skin-colored pixels around the dark spot
+  let skinPixelCount = 0;
   
   // Check square region for simplicity
   for (let y = centerY - checkRadius; y < centerY + checkRadius; y++) {
@@ -578,133 +618,48 @@ const isCentralDarkSpot = (imageData: ImageData): boolean => {
       
       // Define what we consider a "dark" pixel (ear canal is typically dark)
       const brightness = (r + g + b) / 3;
-      if (brightness < 60) { // Low threshold to detect truly dark pixels
+      if (brightness < 80) { // Increased threshold to catch more ear canals
         darkPixelCount++;
+      }
+      
+      // Check if this is a skin-colored pixel
+      if (isEarPixel(r, g, b)) {
+        skinPixelCount++;
       }
     }
   }
   
-  // Calculate ratio of dark pixels in the center region
+  // Calculate ratios
   const darkRatio = darkPixelCount / totalCheckedPixels;
-  console.log(`Dark pixel ratio in center: ${darkRatio.toFixed(3)}`);
+  const skinRatio = skinPixelCount / totalCheckedPixels;
   
-  // If we have enough dark pixels in the center, it's likely an ear canal
-  return darkRatio > 0.05; // Even a small ratio is significant for an ear canal
+  console.log(`Dark pixel ratio in center: ${darkRatio.toFixed(3)}, Skin pixel ratio: ${skinRatio.toFixed(3)}`);
+  
+  // For an ear canal, we need both a dark spot and surrounding skin
+  return darkRatio > 0.03 && skinRatio > 0.3;
 };
 
-// Create a more intelligent fallback ear position based on available skin pixels
-const createIntelligentFallbackPosition = (
-  width: number, 
-  height: number, 
-  skinPixels: { x: number, y: number }[],
-  highSkinRatio: boolean
-): EarPosition => {
-  // Set reasonable ear dimensions
-  const earWidth = width / 4;  // Assume ear takes up about 1/4 of the width
-  const earHeight = height / 3; // And about 1/3 of the height
-  
-  // For high skin-ratio images (close-ups), use side analysis
-  if (highSkinRatio && skinPixels.length > 0) {
-    // Count pixels on left vs right half
-    let leftCount = 0;
-    let rightCount = 0;
-    const midX = width / 2;
-    
-    skinPixels.forEach(pixel => {
-      if (pixel.x < midX) leftCount++;
-      else rightCount++;
-    });
-    
-    // Determine which side has more skin pixels (likely where the ear is)
-    const isRightEar = leftCount > rightCount;
-    
-    // Calculate average position for the detected side
-    let sumX = 0;
-    let sumY = 0;
-    let count = 0;
-    
-    const sidePixels = skinPixels.filter(pixel => 
-      isRightEar ? pixel.x < midX : pixel.x >= midX
-    );
-    
-    if (sidePixels.length > 0) {
-      sidePixels.forEach(pixel => {
-        sumX += pixel.x;
-        sumY += pixel.y;
-        count++;
-      });
-      
-      const avgX = sumX / count;
-      const avgY = sumY / count;
-      
-      // Position hearing aid at the side where it connects to the head
-      const adjustedX = isRightEar
-        ? avgX - earWidth * 0.3  // For right ear, position left of average
-        : avgX + earWidth * 0.3; // For left ear, position right of average
-      
-      return {
-        x: adjustedX,
-        y: avgY,
-        width: earWidth,
-        height: earHeight,
-        rotation: 0,
-        isRightEar: isRightEar
-      };
-    }
-  }
-  
-  // Default random fallback if intelligent positioning fails
-  return createFallbackEarPosition(width, height);
-};
-
-// Create a fallback ear position in the center of the image
-const createFallbackEarPosition = (width: number, height: number): EarPosition => {
-  const earWidth = width / 4;  // Assume ear takes up about 1/4 of the width
-  const earHeight = height / 3; // And about 1/3 of the height
-  
-  // Randomly determine if this is a right or left ear
-  const isRightEar = Math.random() < 0.5;
-  
-  // Position offset from center based on which ear side we're assuming
-  const offsetX = isRightEar ? -width / 6 : width / 6;
-  
-  // Position slightly towards the top half of the image where ears typically are
-  const adjustedY = height * 0.4;
-  
-  console.log(`Using fallback position for ${isRightEar ? 'right' : 'left'} ear`);
-  
-  return {
-    x: width / 2 + offsetX,
-    y: adjustedY,
-    width: earWidth,
-    height: earHeight,
-    rotation: 0,
-    isRightEar: isRightEar
-  };
-};
-
-// Create position for close-up ear image
-const createCloseUpEarPosition = (width: number, height: number): EarPosition => {
+// Create position for close-up ear image with improved positioning
+const createCloseUpEarPosition = (width: number, height: number, isRightEar: boolean): EarPosition => {
   // For close-up ears, we know the ear is covering most of the image
-  // Position the hearing aid behind the ear (right side for right ear, left for left)
   
-  // Determine if it's a right or left ear
-  // For simplicity, analyze the right vs left sides to see which has more skin
-  // This is a basic heuristic and could be improved
-  const isRightEar = Math.random() < 0.5; // For now, randomize as a placeholder
-  
-  // For a close-up ear, make the hearing aid smaller relative to the image
+  // For a close-up ear, the hearing aid needs to be positioned carefully
   const earWidth = width / 5;  // Smaller hearing aid for close-up
   const earHeight = height / 4;
   
-  // Position the hearing aid behind the ear (right side of image for right ear)
-  // For right ear: on the right side of the image, for left ear: on the left side
-  const xPosition = isRightEar ? 
-    width * 0.85 - earWidth / 2 :  // Right side for right ear 
-    width * 0.15 + earWidth / 2;   // Left side for left ear
+  let xPosition;
+  
+  // Position the hearing aid behind the ear
+  if (isRightEar) {
+    // For right ear: position on right side, behind the ear
+    xPosition = width * 0.75;
+  } else {
+    // For left ear: position on left side, behind the ear
+    xPosition = width * 0.25;
+  }
   
   // Vertically, position slightly above the middle
-  const yPosition = height * 0.45;
+  const yPosition = height * 0.42;
   
   console.log(`Using close-up ear position for ${isRightEar ? 'right' : 'left'} ear at (${xPosition.toFixed(0)}, ${yPosition.toFixed(0)})`);
   
@@ -1094,36 +1049,27 @@ export const renderAROverlay = async (
         console.error('Error rendering hearing aid image:', error);
         
         // Only use fallback if we have a valid ear position
-        // Fallback to simple 2D drawing if image loading fails
-        await renderHearingAid2D(
-          ctx,
-          earPosition,
-          hearingAid,
-          earPosition.x + (earPosition.width * (earPosition.isRightEar ? 0.6 : -0.1)),
-          earPosition.y - (earPosition.height * 0.1),
-          earPosition.width / 280, // Make it smaller
-          hearingAid.id
-        );
-        
-        // Only show label on desktop
-        if (window.innerWidth >= 768) {
-          renderProductLabel(ctx, earPosition, hearingAid);
-        }
+        // But don't try to render anything if image loading failed
+        // This prevents confusing incorrect renderings
       }
     } else {
-      // If no ear position detected, only show guidance message, but DON'T render a hearing aid
-      // This prevents the flickering effect when no ear is detected
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+      // If no ear position detected, display a clear guidance message
+      const isMobile = window.innerWidth < 768;
       
+      // Semi-transparent black background for better readability
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+      
+      // White text
       ctx.fillStyle = 'white';
-      ctx.font = '16px Arial';
+      ctx.font = isMobile ? '14px Arial' : '16px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      
       ctx.fillText(
-        'Position your ear in frame for hearing aid overlay',
+        'Position your ear in frame to see the hearing aid',
         canvas.width / 2,
-        canvas.height - 20
+        canvas.height - 25
       );
     }
   } catch (error) {
