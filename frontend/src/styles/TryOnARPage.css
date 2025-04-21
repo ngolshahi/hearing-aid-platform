@@ -55,16 +55,23 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   padding: 2rem;
   height: calc(100vh - 300px);
+  min-height: 500px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  overflow: hidden;
 }
 
 .camera-permission {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 3rem;
+  padding: 2rem;
   max-width: 500px;
+  height: 100%;
   margin: 0 auto;
 }
 
@@ -77,8 +84,17 @@
 
 .camera-permission p {
   color: #4a5568;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   line-height: 1.6;
+}
+
+.permission-note {
+  background-color: rgba(66, 153, 225, 0.1);
+  border-left: 4px solid #4299e1;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.95rem;
 }
 
 .camera-view {
@@ -120,6 +136,7 @@
   display: flex;
   justify-content: space-around;
   z-index: 10;
+  padding: 0 1rem;
 }
 
 .camera-toggle,
@@ -133,6 +150,9 @@
   cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(4px);
+  width: auto;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .camera-toggle:hover,
@@ -409,10 +429,57 @@
 .camera-error {
   background-color: #fed7d7;
   color: #c53030;
-  padding: 1rem;
+  padding: 1.5rem;
   border-radius: 8px;
   text-align: center;
+  margin: 1rem auto;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 2px 6px rgba(197, 48, 48, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.camera-error p {
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.permission-instructions {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 100%;
+  text-align: left;
   margin-top: 1rem;
+  border: 1px solid rgba(197, 48, 48, 0.3);
+}
+
+.permission-instructions h3 {
+  font-size: 1.1rem;
+  color: #c53030;
+  margin-bottom: 1rem;
+}
+
+.permission-instructions ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.permission-instructions li {
+  padding: 0.5rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+  line-height: 1.5;
+}
+
+.permission-instructions li:before {
+  content: "•";
+  position: absolute;
+  left: 0.5rem;
+  color: #c53030;
 }
 
 /* Animation */
@@ -435,10 +502,11 @@
   .mobile-experience {
     padding: 1rem;
     height: calc(100vh - 250px);
+    min-height: 450px;
   }
 
   .camera-permission {
-    padding: 2rem 1rem;
+    padding: 1rem;
   }
 
   .camera-permission h2 {
@@ -462,11 +530,15 @@
     flex-direction: column;
     align-items: center;
     gap: 1rem;
+    padding: 1.5rem;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
   }
 
   .camera-toggle,
   .capture-button {
-    width: 80%;
+    width: 100%;
+    max-width: 200px;
   }
 
   .instructions {

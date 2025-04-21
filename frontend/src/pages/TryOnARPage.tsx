@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/TryOnARPage.css';
-import { getHearingAidById } from '../services/hearingAidService';
-import { processARImage, renderAROverlay } from '../services/arService';
+import { getHearingAidById, processARImage, renderAROverlay } from '../services';
 
 const TryOnARPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,12 +15,14 @@ const TryOnARPage: React.FC = () => {
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [canvasInitialized, setCanvasInitialized] = useState(false);
   const [permissionRequested, setPermissionRequested] = useState(false);
+  const [arError, setArError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const arCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const initTimeoutRef = useRef<number | null>(null);
 
   // Check and request permissions when the component mounts if on mobile
   useEffect(() => {
@@ -60,6 +61,7 @@ const TryOnARPage: React.FC = () => {
           setHearingAidData(product);
         } catch (error) {
           console.error('Error fetching product data:', error);
+          setArError('Failed to load product data. Please try again later.');
         }
       }
     };
@@ -81,12 +83,16 @@ const TryOnARPage: React.FC = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
     };
   }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setArError(null);
       const reader = new FileReader();
       reader.onload = async (e) => {
         const imageDataUrl = e.target?.result as string;
@@ -99,6 +105,7 @@ const TryOnARPage: React.FC = () => {
           setProcessedImage(result);
         } catch (error) {
           console.error('Error processing image:', error);
+          setArError('Failed to process image. Please try a different photo or check your connection.');
         } finally {
           setIsProcessing(false);
         }
@@ -109,6 +116,7 @@ const TryOnARPage: React.FC = () => {
 
   const startCamera = async () => {
     try {
+      setArError(null);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -136,7 +144,11 @@ const TryOnARPage: React.FC = () => {
         videoRef.current.onloadedmetadata = () => {
           console.log('Video metadata loaded, initializing AR canvas');
           videoRef.current?.play();
-          initARCanvas();
+          
+          // Use a timeout to ensure video is fully loaded and playing
+          initTimeoutRef.current = window.setTimeout(() => {
+            initARCanvas();
+          }, 500);
         };
       }
       
@@ -144,6 +156,7 @@ const TryOnARPage: React.FC = () => {
     } catch (err) {
       console.error('Error accessing camera:', err);
       setCameraPermission(false);
+      setArError('Failed to access camera. Please check your camera permissions.');
     }
   };
 
@@ -158,8 +171,15 @@ const TryOnARPage: React.FC = () => {
   }, [facingMode, cameraPermission, permissionRequested]);
 
   const initARCanvas = useCallback(() => {
-    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) {
-      console.log('Missing required refs for AR canvas initialization');
+    if (!videoRef.current || !canvasRef.current || !arCanvasRef.current) {
+      console.error('Missing required refs for AR canvas initialization');
+      setArError('Error initializing AR. Missing video or canvas elements.');
+      return;
+    }
+
+    if (!hearingAidData) {
+      console.error('Missing hearing aid data for AR canvas initialization');
+      setArError('Error initializing AR. Missing product data.');
       return;
     }
     
@@ -171,46 +191,64 @@ const TryOnARPage: React.FC = () => {
     
     if (video.videoWidth === 0 || video.videoHeight === 0) {
       // Try again when video dimensions are available
-      setTimeout(initARCanvas, 100);
+      console.log('Video dimensions not available yet, retrying...');
+      initTimeoutRef.current = window.setTimeout(initARCanvas, 500);
       return;
     }
     
-    // Set canvas dimensions to match video
-    const width = video.videoWidth;
-    const height = video.videoHeight;
-    
-    arCanvas.width = width;
-    arCanvas.height = height;
-    canvas.width = width;
-    canvas.height = height;
-    
-    setCanvasInitialized(true);
-    
-    // Start AR processing loop
-    processVideoFrame();
+    try {
+      // Set canvas dimensions to match video
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      
+      arCanvas.width = width;
+      arCanvas.height = height;
+      canvas.width = width;
+      canvas.height = height;
+      
+      setCanvasInitialized(true);
+      
+      // Start AR processing loop
+      processVideoFrame();
+    } catch (error) {
+      console.error('Error during AR canvas initialization:', error);
+      setArError('Failed to initialize AR view. Please try refreshing the page.');
+    }
   }, [hearingAidData]);
 
   const processVideoFrame = useCallback(() => {
-    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) return;
-    
-    const video = videoRef.current;
-    const arCanvas = arCanvasRef.current;
-    const canvas = canvasRef.current;
-    
-    // Draw current video frame to the hidden canvas
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Get the frame data
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
-      // Render AR overlay onto the visible canvas
-      renderAROverlay(imageData, arCanvas, hearingAidData, facingMode);
+    if (!videoRef.current || !arCanvasRef.current || !canvasRef.current || !hearingAidData) {
+      return;
     }
     
-    // Continue the processing loop
-    animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+    try {
+      const video = videoRef.current;
+      const arCanvas = arCanvasRef.current;
+      const canvas = canvasRef.current;
+      
+      // Draw current video frame to the hidden canvas
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Get the frame data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Render AR overlay onto the visible canvas
+        renderAROverlay(imageData, arCanvas, hearingAidData, facingMode)
+          .catch(error => {
+            console.error('Error in renderAROverlay:', error);
+          });
+      }
+      
+      // Continue the processing loop
+      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+    } catch (error) {
+      console.error('Error in processVideoFrame:', error);
+      // Don't set error state here to avoid flooding UI with errors
+      // Just try to continue processing
+      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+    }
   }, [hearingAidData, facingMode]);
 
   const handleBack = () => {
@@ -224,13 +262,18 @@ const TryOnARPage: React.FC = () => {
   const saveProcessedImage = () => {
     // For mobile: capture the current canvas state
     if (isMobile && arCanvasRef.current) {
-      const dataUrl = arCanvasRef.current.toDataURL('image/jpeg', 0.9);
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `hearing-aid-tryout-${Date.now()}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const dataUrl = arCanvasRef.current.toDataURL('image/jpeg', 0.9);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `hearing-aid-tryout-${Date.now()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('Error saving image:', error);
+        setArError('Failed to save image. Please try again.');
+      }
       return;
     }
     
@@ -289,11 +332,20 @@ const TryOnARPage: React.FC = () => {
           {isMobile ? (
             // Mobile Experience - Real-time AR
             <div className="mobile-experience">
-              {cameraPermission === null ? (
+              {arError && (
+                <div className="camera-error">
+                  <p>{arError}</p>
+                  <button className="primary-button" onClick={() => { setArError(null); window.location.reload(); }}>
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {!arError && cameraPermission === null ? (
                 renderPermissionRequest()
-              ) : cameraPermission === false ? (
+              ) : !arError && cameraPermission === false ? (
                 renderPermissionDenied()
-              ) : (
+              ) : !arError && (
                 <div className="camera-view">
                   {/* Video element for camera stream */}
                   <video 
@@ -377,6 +429,10 @@ const TryOnARPage: React.FC = () => {
                             </div>
                           ) : processedImage ? (
                             <img src={processedImage} alt="Ear with hearing aid" />
+                          ) : arError ? (
+                            <div className="processing-error">
+                              <p>{arError}</p>
+                            </div>
                           ) : (
                             <div className="processing-error">
                               <p>Processing failed. Please try a different image.</p>
@@ -389,7 +445,11 @@ const TryOnARPage: React.FC = () => {
                     <div className="preview-controls">
                       <button 
                         className="secondary-button"
-                        onClick={() => setUploadedImage(null)}
+                        onClick={() => {
+                          setUploadedImage(null);
+                          setProcessedImage(null);
+                          setArError(null);
+                        }}
                       >
                         Try Another Photo
                       </button>
