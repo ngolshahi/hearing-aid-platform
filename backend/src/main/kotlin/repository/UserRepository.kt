@@ -6,11 +6,8 @@ import config.DatabaseConfig
 import model.User
 import io.ktor.http.HttpStatusCode
 import utils.PasswordUtils
-import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.stereotype.Repository
 
-// Renaming the class to CosmosUserRepository to avoid conflict with the interface
-class CosmosUserRepository {
+class UserRepository {
     private val container: CosmosContainer = DatabaseConfig.getUsersContainer()
 
     fun readUser(email: String): User? {
@@ -80,10 +77,4 @@ class CosmosUserRepository {
         }
         return null
     }
-}
-
-// JPA Repository interface
-@Repository
-interface UserRepository : JpaRepository<User, Long> {
-    fun findByEmail(email: String): User?
 }

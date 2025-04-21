@@ -6,6 +6,17 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 @Serializable
+data class User @JsonCreator constructor(
+    @JsonProperty("id") val id: String = "",
+    @JsonProperty("name") val name: String = "",
+    @JsonProperty("email") val email: String = "",
+    @JsonProperty("password") val password: String = "",
+    @JsonProperty("phone") val phone: String? = null,
+    @JsonProperty("image") val image: String? = null,
+    @JsonProperty("details") val details: UserDetails? = null,
+)
+
+@Serializable
 data class HearingAid @JsonCreator constructor(
     @JsonProperty("id") val id: String = UUID.randomUUID().toString(),
     @JsonProperty("name") val name: String = "",
