@@ -43,22 +43,34 @@ export const preloadHearingAidImages = async (productIds: string[]): Promise<voi
 
 // Load 3D model (used as fallback)
 const loadModel = async (): Promise<THREE.Group> => {
-  if (modelCache['hearing-aid']) {
-    return modelCache['hearing-aid'];
-  }
+  try {
+    if (modelCache['hearing-aid']) {
+      console.log('Using cached 3D model');
+      return modelCache['hearing-aid'];
+    }
 
-  return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader();
-    loader.load('/models/hearing-aid-model.glb', (gltf: any) => {
-      const model = gltf.scene;
-      // Cache the model
-      modelCache['hearing-aid'] = model;
-      resolve(model);
-    }, undefined, (error: any) => {
-      console.error('Error loading hearing aid model:', error);
-      reject(error);
+    console.log('Loading 3D model from: /models/hearing-aid-model.glb');
+    return new Promise((resolve, reject) => {
+      const loader = new GLTFLoader();
+      loader.load('/models/hearing-aid-model.glb', (gltf: any) => {
+        console.log('3D model loaded successfully');
+        const model = gltf.scene;
+        // Cache the model
+        modelCache['hearing-aid'] = model;
+        resolve(model);
+      }, 
+      (progress) => {
+        console.log(`Loading 3D model: ${Math.round(progress.loaded / progress.total * 100)}%`);
+      }, 
+      (error: any) => {
+        console.error('Error loading hearing aid model:', error);
+        reject(error);
+      });
     });
-  });
+  } catch (error) {
+    console.error('Exception loading 3D model:', error);
+    throw error;
+  }
 };
 
 // Process an image on the backend to add a hearing aid overlay
@@ -946,13 +958,38 @@ const drawRICHearingAid = async (
   hearingAid: HearingAid
 ): Promise<void> => {
   try {
+    // Check if the model file exists first
+    const modelExists = await checkModelFileExists();
+    
+    if (!modelExists) {
+      console.log('3D model file not found, using 2D image instead');
+      renderRIC2DImage(ctx, earPosition, hearingAidImg, hearingAid);
+      return;
+    }
+    
     // Try to load and use the 3D model which already includes wire and receiver
-    const model = await loadModel();
-    await renderRIC3DModel(ctx, model, earPosition, hearingAid);
+    try {
+      const model = await loadModel();
+      await renderRIC3DModel(ctx, model, earPosition, hearingAid);
+    } catch (error) {
+      console.error('Error using 3D model, falling back to 2D image:', error);
+      // Fall back to 2D image if 3D model fails
+      renderRIC2DImage(ctx, earPosition, hearingAidImg, hearingAid);
+    }
   } catch (error) {
-    console.error('Error loading 3D model, falling back to 2D image:', error);
-    // Fall back to 2D image if 3D model fails
-    renderRIC2DImage(ctx, earPosition, hearingAidImg, hearingAid);
+    console.error('Error in drawRICHearingAid:', error);
+    
+    // Last resort fallback - simple colored box to verify position
+    try {
+      if (earPosition.behindEarPosition) {
+        const { x, y } = earPosition.behindEarPosition;
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        ctx.fillRect(x - 30, y - 30, 60, 60);
+        console.log('Drew emergency fallback indicator at', x, y);
+      }
+    } catch (e) {
+      console.error('Even emergency fallback failed:', e);
+    }
   }
 };
 
@@ -963,123 +1000,139 @@ const renderRIC3DModel = async (
   earPosition: EarPosition,
   hearingAid: HearingAid
 ): Promise<void> => {
-  // Get the dimensions of the canvas
-  const canvas = ctx.canvas;
-  const { width, height } = canvas;
-  
-  // Make sure we have all the necessary positions
-  if (!earPosition.canalPosition || !earPosition.helixPosition || !earPosition.behindEarPosition) {
-    console.error('Missing anatomical points for RIC placement');
-    return;
-  }
-  
-  // Create an offscreen canvas for 3D rendering
-  const offscreenCanvas = document.createElement('canvas');
-  offscreenCanvas.width = 512;
-  offscreenCanvas.height = 512;
-  
-  // Set up Three.js renderer
-  const renderer = new THREE.WebGLRenderer({
-    canvas: offscreenCanvas,
-    alpha: true
-  });
-  renderer.setClearColor(0x000000, 0);
-  
-  // Set up scene and camera
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-  camera.position.z = 5;
-  
-  // Add lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  scene.add(ambientLight);
-  
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(1, 1, 1);
-  scene.add(directionalLight);
-  
-  // Clone the model
-  const modelClone = model.clone();
-  
-  // Apply color to model material if hearing aid has colors
-  if (hearingAid.colors && hearingAid.colors.length > 0) {
-    const colorHex = hearingAid.colors[0];
-    modelClone.traverse((object) => {
-      if ((object as THREE.Mesh).isMesh) {
-        const mesh = object as THREE.Mesh;
-        if (mesh.material) {
-          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          materials.forEach(material => {
-            if (material instanceof THREE.MeshStandardMaterial) {
-              material.color.set(colorHex);
-            }
-          });
-        }
-      }
+  try {
+    console.log('Rendering RIC with 3D model for ear position:', earPosition);
+    
+    // Get the dimensions of the canvas
+    const canvas = ctx.canvas;
+    const { width, height } = canvas;
+    
+    // Make sure we have all the necessary positions
+    if (!earPosition.canalPosition || !earPosition.helixPosition || !earPosition.behindEarPosition) {
+      console.error('Missing anatomical points for RIC placement');
+      return;
+    }
+    
+    // Create an offscreen canvas for 3D rendering
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 512;
+    offscreenCanvas.height = 512;
+    
+    // Set up Three.js renderer
+    const renderer = new THREE.WebGLRenderer({
+      canvas: offscreenCanvas,
+      alpha: true
     });
-  }
-  
-  // Calculate appropriate scale based on ear dimensions
-  const isMobile = window.innerWidth < 768;
-  const isCloseUp = earPosition.width > width / 3;
-  
-  // Scale factor for the 3D model
-  const scaleFactor = isMobile ? 
-    (isCloseUp ? 0.5 : 0.7) : // Mobile scaling
-    (isCloseUp ? 0.6 : 0.8);  // Desktop scaling
-  
-  const modelScale = earPosition.width / 180 * scaleFactor;
-  
-  // Apply scale
-  modelClone.scale.set(modelScale, modelScale, modelScale);
-  
-  // Apply rotation to match ear orientation
-  // Flip the model horizontally based on which ear we're rendering for
-  modelClone.rotation.y = earPosition.isRightEar ? -Math.PI / 2 : Math.PI / 2;
-  
-  // Position the model to align with behind-ear position
-  // The model origin should be near the body, not the receiver
-  scene.add(modelClone);
-  
-  // Render the model
-  renderer.render(scene, camera);
-  
-  // Calculate position to draw the rendered model
-  // Position behind ear where the main body should sit
-  const hearingAidX = earPosition.behindEarPosition.x;
-  const hearingAidY = earPosition.behindEarPosition.y;
-  
-  // Draw the rendered model onto the main canvas
-  ctx.drawImage(
-    offscreenCanvas, 
-    0, 0, 512, 512,
-    hearingAidX - 256 * modelScale, 
-    hearingAidY - 256 * modelScale,
-    512 * modelScale, 
-    512 * modelScale
-  );
-  
-  // Clean up
-  scene.remove(modelClone);
-  renderer.dispose();
-  
-  // Add product label for non-mobile
-  if (!isMobile) {
-    // Semi-transparent background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, height - 40, width, 40);
+    renderer.setClearColor(0x000000, 0);
     
-    // Text
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Set up scene and camera
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.z = 5;
     
-    ctx.fillText(
-      `${hearingAid.name} - RIC Hearing Aid`,
-      width / 2,
-      height - 20
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    
+    // Clone the model
+    const modelClone = model.clone();
+    console.log('Model cloned successfully');
+    
+    // Apply color to model material if hearing aid has colors
+    if (hearingAid.colors && hearingAid.colors.length > 0) {
+      const colorHex = hearingAid.colors[0];
+      console.log(`Applying color ${colorHex} to model`);
+      modelClone.traverse((object) => {
+        if ((object as THREE.Mesh).isMesh) {
+          const mesh = object as THREE.Mesh;
+          if (mesh.material) {
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            materials.forEach(material => {
+              if (material instanceof THREE.MeshStandardMaterial) {
+                material.color.set(colorHex);
+              }
+            });
+          }
+        }
+      });
+    }
+    
+    // Calculate appropriate scale based on ear dimensions
+    const isMobile = window.innerWidth < 768;
+    const isCloseUp = earPosition.width > width / 3;
+    
+    // Scale factor for the 3D model - increase visibility
+    const scaleFactor = isMobile ? 
+      (isCloseUp ? 1.2 : 1.5) : // Mobile scaling (larger)
+      (isCloseUp ? 1.4 : 1.8);  // Desktop scaling (larger)
+    
+    const modelScale = earPosition.width / 180 * scaleFactor;
+    console.log(`Using model scale: ${modelScale}`);
+    
+    // Apply scale
+    modelClone.scale.set(modelScale, modelScale, modelScale);
+    
+    // Apply rotation to match ear orientation
+    // Flip the model horizontally based on which ear we're rendering for
+    modelClone.rotation.y = earPosition.isRightEar ? -Math.PI / 2 : Math.PI / 2;
+    
+    // Add model to scene
+    scene.add(modelClone);
+    
+    // Render the model
+    renderer.render(scene, camera);
+    console.log('3D model rendered to offscreen canvas');
+    
+    // Calculate position to draw the rendered model
+    // Position behind ear where the main body should sit
+    const hearingAidX = earPosition.behindEarPosition.x;
+    const hearingAidY = earPosition.behindEarPosition.y;
+    
+    console.log(`Drawing at position: (${hearingAidX}, ${hearingAidY})`);
+    
+    // Draw the rendered model onto the main canvas
+    // Draw larger to ensure visibility
+    const renderSize = 512 * modelScale;
+    ctx.drawImage(
+      offscreenCanvas, 
+      0, 0, 512, 512,
+      hearingAidX - renderSize / 2, 
+      hearingAidY - renderSize / 2,
+      renderSize, 
+      renderSize
     );
+    
+    // Clean up
+    scene.remove(modelClone);
+    renderer.dispose();
+    
+    // Add product label for non-mobile
+    if (!isMobile) {
+      // Semi-transparent background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, height - 40, width, 40);
+      
+      // Text
+      ctx.fillStyle = 'white';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      ctx.fillText(
+        `${hearingAid.name} - RIC Hearing Aid`,
+        width / 2,
+        height - 20
+      );
+    }
+    
+    console.log('Completed 3D model rendering');
+  } catch (error) {
+    console.error('Error in renderRIC3DModel:', error);
+    throw error;
   }
 };
 
@@ -1090,70 +1143,99 @@ const renderRIC2DImage = (
   hearingAidImg: HTMLImageElement,
   hearingAid: HearingAid
 ): void => {
-  // Get the dimensions of the canvas
-  const canvas = ctx.canvas;
-  const { width, height } = canvas;
-  
-  // Calculate size based on ear dimensions
-  const isMobile = window.innerWidth < 768;
-  const isCloseUp = earPosition.width > width / 3;
-  
-  // Scale factor for 2D image
-  const scaleFactor = isMobile ? 
-    (isCloseUp ? 0.6 : 0.8) : // Mobile scaling
-    (isCloseUp ? 0.7 : 0.9);  // Desktop scaling
-  
-  const ricBodyWidth = earPosition.width * scaleFactor * 0.8;
-  const ricBodyHeight = ricBodyWidth * (hearingAidImg.height / hearingAidImg.width);
-  
-  // Make sure we have behind-ear position
-  if (!earPosition.behindEarPosition) {
-    console.error('Missing behind-ear position for RIC placement');
-    return;
-  }
-  
-  // Save context for transformations
-  ctx.save();
-  
-  // Position to draw the main body of the RIC behind the ear
-  const bodyX = earPosition.behindEarPosition.x;
-  const bodyY = earPosition.behindEarPosition.y;
-  
-  // For right ear, flip the image horizontally
-  if (earPosition.isRightEar) {
-    ctx.scale(-1, 1);
-    ctx.translate(-2 * bodyX, 0);
-  }
-  
-  // Draw the hearing aid image - the PNG should already include the wire and receiver
-  ctx.drawImage(
-    hearingAidImg,
-    bodyX - ricBodyWidth / 2,
-    bodyY - ricBodyHeight / 2,
-    ricBodyWidth,
-    ricBodyHeight
-  );
-  
-  // Restore context
-  ctx.restore();
-  
-  // Add product label for non-mobile
-  if (!isMobile) {
-    // Semi-transparent background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, height - 40, width, 40);
+  try {
+    console.log('Rendering RIC with 2D image for ear position:', earPosition);
     
-    // Text
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Get the dimensions of the canvas
+    const canvas = ctx.canvas;
+    const { width, height } = canvas;
     
-    ctx.fillText(
-      `${hearingAid.name} - RIC Hearing Aid`,
-      width / 2,
-      height - 20
+    // Calculate size based on ear dimensions
+    const isMobile = window.innerWidth < 768;
+    const isCloseUp = earPosition.width > width / 3;
+    
+    // Scale factor for 2D image - increase for better visibility
+    const scaleFactor = isMobile ? 
+      (isCloseUp ? 1.2 : 1.5) : // Mobile scaling (larger)
+      (isCloseUp ? 1.4 : 1.8);  // Desktop scaling (larger)
+    
+    const ricBodyWidth = earPosition.width * scaleFactor;
+    const ricBodyHeight = ricBodyWidth * (hearingAidImg.height / hearingAidImg.width);
+    
+    console.log(`Using image size: ${ricBodyWidth}x${ricBodyHeight}`);
+    
+    // Make sure we have behind-ear position
+    if (!earPosition.behindEarPosition) {
+      console.error('Missing behind-ear position for RIC placement');
+      return;
+    }
+    
+    // Save context for transformations
+    ctx.save();
+    
+    // Position to draw the main body of the RIC behind the ear
+    const bodyX = earPosition.behindEarPosition.x;
+    const bodyY = earPosition.behindEarPosition.y;
+    
+    console.log(`Drawing at position: (${bodyX}, ${bodyY})`);
+    
+    // For right ear, flip the image horizontally
+    if (earPosition.isRightEar) {
+      ctx.scale(-1, 1);
+      ctx.translate(-2 * bodyX, 0);
+    }
+    
+    // Draw a background dot to verify position (for debugging)
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.arc(bodyX, bodyY, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw the hearing aid image - the PNG should already include the wire and receiver
+    ctx.drawImage(
+      hearingAidImg, 
+      bodyX - ricBodyWidth / 2,
+      bodyY - ricBodyHeight / 2,
+      ricBodyWidth,
+      ricBodyHeight
     );
+    
+    // Restore context
+    ctx.restore();
+    
+    // Add product label for non-mobile
+    if (!isMobile) {
+      // Semi-transparent background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, height - 40, width, 40);
+      
+      // Text
+      ctx.fillStyle = 'white';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      ctx.fillText(
+        `${hearingAid.name} - RIC Hearing Aid`,
+        width / 2,
+        height - 20
+      );
+    }
+    
+    console.log('Completed 2D image rendering');
+  } catch (error) {
+    console.error('Error in renderRIC2DImage:', error);
+  }
+};
+
+// Check if the GLB model file exists
+const checkModelFileExists = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('/models/hearing-aid-model.glb', { method: 'HEAD' });
+    return response.ok;
+  } catch (error) {
+    console.error('Error checking for model file:', error);
+    return false;
   }
 };
 
