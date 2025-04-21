@@ -3,6 +3,7 @@ package services
 
 import repository.AudiologistRepository
 import model.Audiologist
+import utils.PasswordUtils
 
 class AudiologistService(private val audiologistRepository: AudiologistRepository = AudiologistRepository()) {
     
@@ -15,6 +16,18 @@ class AudiologistService(private val audiologistRepository: AudiologistRepositor
     }
 
     fun updateAudiologist(audiologist: Audiologist): Audiologist? {
+        // Check if the password has been changed
+        val existingAudiologist = audiologistRepository.getAudiologistById(audiologist.id)
+        
+        if (existingAudiologist != null) {
+            // If the password is different from the existing one, hash it
+            if (audiologist.password != existingAudiologist.password) {
+                val hashedPassword = PasswordUtils.hashPassword(audiologist.password)
+                val updatedAudiologist = audiologist.copy(password = hashedPassword)
+                return audiologistRepository.updateAudiologist(updatedAudiologist)
+            }
+        }
+        
         return audiologistRepository.updateAudiologist(audiologist)
     }
 

@@ -7,6 +7,7 @@ import model.Audiologist
 import io.ktor.http.HttpStatusCode
 import com.azure.cosmos.models.SqlParameter
 import com.azure.cosmos.models.SqlQuerySpec
+import utils.PasswordUtils
 
 class AudiologistRepository {
     private val audiologistsContainer: CosmosContainer = DatabaseConfig.getAudiologistsContainer()
@@ -64,7 +65,7 @@ class AudiologistRepository {
 
     fun authenticateAudiologist(email: String, password: String): Audiologist? {
         val audiologist = getAudiologistByEmail(email)
-        if (audiologist != null && audiologist.password == password) {
+        if (audiologist != null && PasswordUtils.verifyPassword(password, audiologist.password)) {
             return audiologist
         }
         return null

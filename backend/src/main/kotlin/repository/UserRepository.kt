@@ -5,6 +5,7 @@ import com.azure.cosmos.models.PartitionKey
 import config.DatabaseConfig
 import model.User
 import io.ktor.http.HttpStatusCode
+import utils.PasswordUtils
 
 class UserRepository {
     private val container: CosmosContainer = DatabaseConfig.getUsersContainer()
@@ -24,8 +25,9 @@ class UserRepository {
 
     suspend fun createUser(name: String, email: String, password: String): User? {
         println("Creating user")
-        // In a real app, hash the password before storing
-        val user = User(id = email, name = name, email = email, password = password)
+        // Hash the password before storing
+        val hashedPassword = PasswordUtils.hashPassword(password)
+        val user = User(id = email, name = name, email = email, password = hashedPassword)
         
         try {
             val itemResponse = container.createItem(user)
@@ -69,8 +71,8 @@ class UserRepository {
 
     fun verifyPassword(email: String, password: String): User? {
         val user = readUser(email) ?: return null
-        // In a real app, compare hashed passwords
-        if (user.password == password) {
+        // Compare hashed passwords
+        if (PasswordUtils.verifyPassword(password, user.password)) {
             return user
         }
         return null

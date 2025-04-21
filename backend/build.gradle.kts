@@ -1,4 +1,3 @@
-
 val kotlin_version: String by project
 val logback_version: String by project
 
@@ -33,6 +32,7 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.2.4")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$kotlin_version")
+    implementation("org.mindrot:jbcrypt:0.4")
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     implementation("io.ktor:ktor-server-cors:$kotlin_version")

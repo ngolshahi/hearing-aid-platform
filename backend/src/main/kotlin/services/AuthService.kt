@@ -3,6 +3,7 @@ package services
 import model.User
 import repository.UserRepository
 import io.ktor.http.HttpStatusCode
+import utils.PasswordUtils
 
 class AuthService(private val userRepository: UserRepository = UserRepository()) {
     
@@ -26,6 +27,18 @@ class AuthService(private val userRepository: UserRepository = UserRepository())
     }
     
     fun updateUser(user: User): User? {
+        // Check if the password has been changed
+        val existingUser = userRepository.readUser(user.email)
+        
+        if (existingUser != null) {
+            // If the password is different from the existing one, hash it
+            if (user.password != existingUser.password) {
+                val hashedPassword = PasswordUtils.hashPassword(user.password)
+                val updatedUser = user.copy(password = hashedPassword)
+                return userRepository.updateUser(updatedUser)
+            }
+        }
+        
         return userRepository.updateUser(user)
     }
 }
