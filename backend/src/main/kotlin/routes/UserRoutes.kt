@@ -99,7 +99,7 @@ fun Route.userRoutes() {
                 val loginRequest = call.receive<LoginRequest>()
                 
                 // Check if user exists in the database
-                val existingUser = authService.userRepository.readUser(loginRequest.email)
+                val existingUser = authService.getUserByEmail(loginRequest.email)
                 
                 if (existingUser == null) {
                     call.respond(HttpStatusCode.Unauthorized, LoginResponse(

@@ -14,6 +14,15 @@ class AuthService(
 ) {
     
     /**
+     * Get a user by email
+     * @param email The user's email
+     * @return The user, or null if not found
+     */
+    fun getUserByEmail(email: String): User? {
+        return userRepository.readUser(email)
+    }
+    
+    /**
      * Register a new user with validation and email verification
      * @param name The user's name
      * @param email The user's email
