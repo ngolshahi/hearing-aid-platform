@@ -80,15 +80,12 @@ export interface ResendVerificationResponse {
 export const register = async (data: RegisterRequest): Promise<{ user: User | null, message: string }> => {
   try {
     const response = await axios.post<any>(`${API_URL}/users/register`, data);
-    if (response.data.user) {
-      return {
-        user: response.data.user,
-        message: response.data.message || "Registration successful"
-      };
-    }
+    
+    // Just return the response regardless of whether user is null
+    // The message will indicate verification is needed
     return {
-      user: null,
-      message: response.data.message || "Unknown server response"
+      user: response.data.user,
+      message: response.data.message || "Registration successful"
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {

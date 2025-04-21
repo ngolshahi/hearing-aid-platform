@@ -70,12 +70,13 @@ const LoginPage: React.FC = () => {
   // Start timer when verification is needed
   useEffect(() => {
     if (needsVerification) {
+      console.log("Transitioning to verification screen with email:", verificationEmail);
       setTimeRemaining(300); // Reset to 5 minutes
       setTimerActive(true);
     } else {
       setTimerActive(false);
     }
-  }, [needsVerification]);
+  }, [needsVerification, verificationEmail]);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -206,22 +207,34 @@ const LoginPage: React.FC = () => {
           return;
         }
 
-        // Handle registration with improved error handling
-        const response = await register({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName
-        });
+        try {
+          // Handle registration with improved error handling
+          const response = await register({
+            email: formData.email,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName
+          });
+    
+          console.log("Registration response:", response);
   
-        if (response.user) {
-          // Registration successful, but user still needs to verify email
-          setNeedsVerification(true);
-          setVerificationEmail(formData.email);
-          setError('');
-        } else {
-          // Registration failed with specific error message
-          setError(response.message);
+          // Check if the response indicates registration was successful (even with pending verification)
+          if (response.message && 
+              (response.message.includes("verification") || 
+               response.message.includes("check your email") || 
+               response.message.includes("pending") ||
+               (response.user === null && !response.message.includes("failed") && !response.message.includes("exists")))) {
+            // Registration was successful, show the verification screen
+            setNeedsVerification(true);
+            setVerificationEmail(formData.email);
+            setError('');
+          } else {
+            // Registration failed with specific error message
+            setError(response.message);
+          }
+        } catch (err) {
+          console.error("Registration error:", err);
+          setError('An unexpected error occurred during registration');
         }
       }
     } catch (err) {
