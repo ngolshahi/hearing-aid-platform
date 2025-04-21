@@ -14,6 +14,15 @@ import model.User
 import model.VerificationRequest
 import model.UserRegistrationResponse
 
+@Serializable
+data class LoginResponse(
+    val user: User? = null,
+    val verified: Boolean = false,
+    val message: String = ""
+)
+
+@Serializable
+data class ResendVerificationRequest(val email: String)
 
 fun Route.userRoutes() {
     val authService = AuthService()
@@ -61,7 +70,7 @@ fun Route.userRoutes() {
                 val verified = authService.verifyEmail(verificationRequest.email, verificationRequest.token)
                 
                 if (verified) {
-                    call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully"))
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully. You can now log in."))
                 } else {
                     call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid or expired verification token"))
                 }
@@ -70,17 +79,69 @@ fun Route.userRoutes() {
             }
         }
         
+        post("/resend-verification") {
+            try {
+                val request = call.receive<ResendVerificationRequest>()
+                val sent = authService.resendVerificationEmail(request.email)
+                
+                if (sent) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Verification email resent successfully"))
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to resend verification email"))
+                }
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to resend verification email: ${e.message}"))
+            }
+        }
+        
         post("/login") {
             try {
                 val loginRequest = call.receive<LoginRequest>()
                 
-                // Change this line - authenticateUser returns User?, not Boolean
+                // Check if user exists in the database
+                val existingUser = authService.userRepository.readUser(loginRequest.email)
+                
+                if (existingUser == null) {
+                    call.respond(HttpStatusCode.Unauthorized, LoginResponse(
+                        user = null,
+                        verified = false,
+                        message = "Invalid email or password"
+                    ))
+                    return@post
+                }
+                
+                // Check if the user is verified
+                if (!existingUser.verified) {
+                    // User exists but isn't verified
+                    val passwordCorrect = authService.authenticateUser(loginRequest.email, loginRequest.password) != null
+                    
+                    if (passwordCorrect) {
+                        call.respond(HttpStatusCode.Forbidden, LoginResponse(
+                            user = null,
+                            verified = false,
+                            message = "Your email is not verified. Please check your email for the verification link or request a new one."
+                        ))
+                    } else {
+                        call.respond(HttpStatusCode.Unauthorized, LoginResponse(
+                            user = null,
+                            verified = false,
+                            message = "Invalid email or password"
+                        ))
+                    }
+                    return@post
+                }
+                
+                // Try to authenticate
                 val user = authService.authenticateUser(loginRequest.email, loginRequest.password)
                 
-                if (user != null) {  // Check if the user exists
+                if (user != null) {
                     call.respond(HttpStatusCode.OK, user)
                 } else {
-                    call.respond(HttpStatusCode.Unauthorized, mapOf("message" to "Failed to login"))
+                    call.respond(HttpStatusCode.Unauthorized, LoginResponse(
+                        user = null,
+                        verified = true,
+                        message = "Invalid email or password"
+                    ))
                 }
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, AuthResponse(
@@ -120,6 +181,23 @@ fun Route.userRoutes() {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     mapOf("message" to "Failed to update user: ${e.message}")
+                )
+            }
+        }
+        
+        get("/check-verification/{email}") {
+            try {
+                val email = call.parameters["email"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("message" to "Missing email parameter")
+                )
+                
+                val isVerified = authService.isEmailVerified(email)
+                call.respond(HttpStatusCode.OK, mapOf("verified" to isVerified))
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("message" to "Failed to check verification status: ${e.message}")
                 )
             }
         }

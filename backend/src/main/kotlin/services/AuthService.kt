@@ -40,12 +40,18 @@ class AuthService(
             return Pair(null, "User with this email already exists")
         }
         
-        // Create the user with a hashed password
+        // Create the user with a hashed password, initially unverified
         val hashedPassword = PasswordUtils.hashPassword(password)
-        val user = User(id = email, name = name, email = email, password = hashedPassword)
+        val user = User(
+            id = email, 
+            name = name, 
+            email = email, 
+            password = hashedPassword,
+            verified = false
+        )
         
         // Store the user in the database
-        val createdUser = userRepository.createUser(name, email, hashedPassword)
+        val createdUser = userRepository.createUser(user)
         if (createdUser == null) {
             return Pair(null, "Failed to create user")
         }
@@ -57,12 +63,12 @@ class AuthService(
         if (token != null) {
             val emailSent = emailService.sendVerificationEmail(email, otp)
             if (emailSent) {
-                return Pair(createdUser, "User created successfully. Please check your email for verification.")
+                return Pair(createdUser, "Your account has been created. Please check your email to verify your account before logging in.")
             } else {
-                return Pair(createdUser, "User created successfully, but verification email could not be sent.")
+                return Pair(createdUser, "Your account has been created, but verification email could not be sent. Please contact support.")
             }
         } else {
-            return Pair(createdUser, "User created successfully, but verification token could not be created.")
+            return Pair(createdUser, "Your account has been created, but verification token could not be created. Please contact support.")
         }
     }
     
@@ -73,7 +79,19 @@ class AuthService(
      * @return true if the email was verified, false otherwise
      */
     fun verifyEmail(email: String, token: String): Boolean {
-        return verificationTokenRepository.verifyToken(email, token)
+        val tokenVerified = verificationTokenRepository.verifyToken(email, token)
+        
+        if (tokenVerified) {
+            // Update the user's verified status
+            val user = userRepository.readUser(email)
+            if (user != null) {
+                val verifiedUser = user.copy(verified = true)
+                userRepository.updateUser(verifiedUser)
+                return true
+            }
+        }
+        
+        return false
     }
     
     /**
@@ -83,7 +101,15 @@ class AuthService(
      * @return The authenticated user, or null if authentication failed
      */
     fun authenticateUser(email: String, password: String): User? {
-        return userRepository.verifyPassword(email, password)
+        val user = userRepository.verifyPassword(email, password)
+        
+        // Check if the user is verified
+        if (user != null && !user.verified) {
+            // User exists but is not verified
+            return null
+        }
+        
+        return user
     }
     
     /**
@@ -96,14 +122,46 @@ class AuthService(
         val existingUser = userRepository.readUser(user.email)
         
         if (existingUser != null) {
-            // If the password is different from the existing one, hash it
-            if (user.password != existingUser.password) {
+            // Preserve the verification status
+            val updatedUser = if (user.password != existingUser.password) {
                 val hashedPassword = PasswordUtils.hashPassword(user.password)
-                val updatedUser = user.copy(password = hashedPassword)
-                return userRepository.updateUser(updatedUser)
+                user.copy(password = hashedPassword, verified = existingUser.verified)
+            } else {
+                user.copy(verified = existingUser.verified)
             }
+            
+            return userRepository.updateUser(updatedUser)
         }
         
         return userRepository.updateUser(user)
+    }
+    
+    /**
+     * Check if a user's email is verified
+     * @param email The user's email
+     * @return true if the email is verified, false otherwise
+     */
+    fun isEmailVerified(email: String): Boolean {
+        val user = userRepository.readUser(email)
+        return user?.verified == true
+    }
+    
+    /**
+     * Resend verification email
+     * @param email The user's email
+     * @return true if the email was sent, false otherwise
+     */
+    suspend fun resendVerificationEmail(email: String): Boolean {
+        val user = userRepository.readUser(email)
+        if (user != null && !user.verified) {
+            // Generate and send verification email
+            val otp = emailService.generateOTP()
+            val token = verificationTokenRepository.createToken(email, otp)
+            
+            if (token != null) {
+                return emailService.sendVerificationEmail(email, otp)
+            }
+        }
+        return false
     }
 }

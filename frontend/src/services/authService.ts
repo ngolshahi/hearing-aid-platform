@@ -66,7 +66,15 @@ export interface Audiologist {
   password: string;
 }
 
+export interface LoginResponse {
+  user: User | null;
+  verified: boolean;
+  message: string;
+}
 
+export interface ResendVerificationResponse {
+  message: string;
+}
 
 // Register a new user
 export const register = async (data: RegisterRequest): Promise<{ user: User | null, message: string }> => {
@@ -99,28 +107,65 @@ export const register = async (data: RegisterRequest): Promise<{ user: User | nu
   }
 };
 
-export const login = async (data: LoginRequest): Promise<User | Audiologist | null> => {
+// Login with improved error handling for verification status
+export const login = async (data: LoginRequest): Promise<{ user: User | Audiologist | null, message: string, verified: boolean }> => {
   try {
     // Try user login first
-    const response = await axios.post<User>(`${API_URL}/users/login`, data);
-    if (response.data.email) {
+    const response = await axios.post<any>(`${API_URL}/users/login`, data);
+    
+    if (response.data && response.data.email) {
       localStorage.setItem('user', JSON.stringify(response.data));
+      return {
+        user: response.data,
+        message: '',
+        verified: true
+      };
     }
-    return response.data;
+    
+    return {
+      user: null,
+      message: response.data?.message || "Unknown error",
+      verified: response.data?.verified || false
+    };
   } catch (error) {
-    try {
-      // If user login fails, try audiologist login
-      const audiologistResponse = await axios.post<Audiologist>(`${API_URL}/audiologists/login`, data);
-      if (audiologistResponse.data.email) {
-        localStorage.setItem('user', JSON.stringify(audiologistResponse.data));
+    if (axios.isAxiosError(error) && error.response) {
+      // Check for verification error (403 Forbidden)
+      if (error.response.status === 403) {
+        // Email not verified
+        return {
+          user: null,
+          message: error.response.data?.message || "Your email is not verified",
+          verified: false
+        };
       }
-      return audiologistResponse.data;
-    } catch (innerError) {
-      if (axios.isAxiosError(innerError) && innerError.response) {
-        return null;
+      
+      try {
+        // If user login fails, try audiologist login
+        const audiologistResponse = await axios.post<Audiologist>(`${API_URL}/audiologists/login`, data);
+        if (audiologistResponse.data.email) {
+          localStorage.setItem('user', JSON.stringify(audiologistResponse.data));
+          return {
+            user: audiologistResponse.data,
+            message: '',
+            verified: true
+          };
+        }
+      } catch (innerError) {
+        // Both login attempts failed
       }
-      return null;
+      
+      return {
+        user: null,
+        message: error.response.data?.message || "Invalid email or password",
+        verified: error.response.data?.verified || false
+      };
     }
+    
+    return {
+      user: null,
+      message: "Network error or server unavailable",
+      verified: false
+    };
   }
 };
 
@@ -205,5 +250,62 @@ export const updateAudiologistProfile = async (data: Audiologist): Promise<Audio
       console.error('Unexpected error:', error);
     }
     return null;
+  }
+};
+
+// Verify email with token
+export const verifyEmail = async (email: string, token: string): Promise<{ success: boolean, message: string }> => {
+  try {
+    const response = await axios.post<any>(`${API_URL}/users/verify-email`, { email, token });
+    return {
+      success: true,
+      message: response.data.message || "Email verified successfully"
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return {
+        success: false,
+        message: error.response.data?.message || "Failed to verify email"
+      };
+    }
+    return {
+      success: false,
+      message: "Network error or server unavailable"
+    };
+  }
+};
+
+// Resend verification email
+export const resendVerification = async (email: string): Promise<{ success: boolean, message: string }> => {
+  try {
+    const response = await axios.post<ResendVerificationResponse>(
+      `${API_URL}/users/resend-verification`, 
+      { email }
+    );
+    return {
+      success: true,
+      message: response.data.message
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return {
+        success: false,
+        message: error.response.data?.message || "Failed to resend verification email"
+      };
+    }
+    return {
+      success: false,
+      message: "Network error or server unavailable"
+    };
+  }
+};
+
+// Check email verification status
+export const checkVerificationStatus = async (email: string): Promise<boolean> => {
+  try {
+    const response = await axios.get<{ verified: boolean }>(`${API_URL}/users/check-verification/${email}`);
+    return response.data.verified;
+  } catch (error) {
+    return false;
   }
 };

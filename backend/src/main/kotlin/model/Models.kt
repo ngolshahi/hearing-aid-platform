@@ -14,6 +14,7 @@ data class User @JsonCreator constructor(
     @JsonProperty("phone") val phone: String? = null,
     @JsonProperty("image") val image: String? = null,
     @JsonProperty("details") val details: UserDetails? = null,
+    @JsonProperty("verified") val verified: Boolean = false
 )
 
 @Serializable

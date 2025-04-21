@@ -14,8 +14,7 @@ class UserRepository {
         return try {
             // Retrieve the item using the email as both ID and partition key
             val response = container.readItem(email, PartitionKey(email), User::class.java)
-            val item = response.item
-            User(id = item.email, name = item.name, email = item.email, password = item.password)
+            response.item
         } catch (e: Exception) {
             println("Error reading user by email: $email")
             e.printStackTrace()
@@ -23,12 +22,8 @@ class UserRepository {
         }
     }
 
-    suspend fun createUser(name: String, email: String, password: String): User? {
-        println("Creating user")
-        // Hash the password before storing
-        val hashedPassword = PasswordUtils.hashPassword(password)
-        val user = User(id = email, name = name, email = email, password = hashedPassword)
-        
+    suspend fun createUser(user: User): User? {
+        println("Creating user: ${user.email}")
         try {
             val itemResponse = container.createItem(user)
             println("Status code " + itemResponse.statusCode)
@@ -38,7 +33,7 @@ class UserRepository {
                 return null
             }
         } catch (e: Exception) {
-            println("Error creating user.")
+            println("Error creating user: ${e.message}")
             e.printStackTrace()
             return null
         }
@@ -78,3 +73,4 @@ class UserRepository {
         return null
     }
 }
+   

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/LoginPage.css';
-import { isAuthenticated, login, register } from '../services/authService';
+import { isAuthenticated, login, register, resendVerification } from '../services/authService';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +17,10 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
   
 
   // Update isLogin when path changes
@@ -48,10 +52,29 @@ const LoginPage: React.FC = () => {
     }));
   };
 
+  const handleResendVerification = async () => {
+    setResendingVerification(true);
+    setVerificationMessage('');
+    
+    try {
+      const result = await resendVerification(verificationEmail);
+      if (result.success) {
+        setVerificationMessage(result.message);
+      } else {
+        setVerificationMessage(result.message);
+      }
+    } catch (err) {
+      setVerificationMessage('Failed to resend verification email');
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    setNeedsVerification(false);
 
     // Validate password match for registration
     if (!isLogin && formData.password !== formData.confirmPassword) {
@@ -62,16 +85,21 @@ const LoginPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        // Handle login (unchanged)
-        const user = await login({
+        // Handle login with verification check
+        const loginResult = await login({
           email: formData.email,
           password: formData.password
         });
 
-        if (user) {
+        if (loginResult.user) {
           navigate('/dashboard');
+        } else if (!loginResult.verified && loginResult.message.includes('not verified')) {
+          // User exists but email isn't verified
+          setNeedsVerification(true);
+          setVerificationEmail(formData.email);
+          setError('');
         } else {
-          setError('Invalid email or password');
+          setError(loginResult.message || 'Invalid email or password');
         }
       } else {
         // Password validation on client side
@@ -99,9 +127,10 @@ const LoginPage: React.FC = () => {
         });
   
         if (response.user) {
-          // Registration successful
-          alert('Account created successfully! Please log in.');
-          navigate('/login');
+          // Registration successful, but user still needs to verify email
+          setNeedsVerification(true);
+          setVerificationEmail(formData.email);
+          setError('');
         } else {
           // Registration failed with specific error message
           setError(response.message);
@@ -125,9 +154,94 @@ const LoginPage: React.FC = () => {
       lastName: '',
     });
     setError('');
+    setNeedsVerification(false);
     // Update URL when toggling
     navigate(isLogin ? '/signup' : '/login');
   };
+
+  // If user needs to verify email, show verification message
+  if (needsVerification) {
+    return (
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-content">
+            <div className="auth-header">
+              <h1>Email Verification Required</h1>
+              <p>Please check your email for a verification link</p>
+            </div>
+            
+            <div className="verification-message" style={{
+              marginBottom: '20px',
+              padding: '20px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '5px',
+              textAlign: 'center'
+            }}>
+              <p>We've sent a verification email to <strong>{verificationEmail}</strong></p>
+              <p>Please check your inbox and click the verification link to activate your account.</p>
+              
+              {verificationMessage && (
+                <div style={{ 
+                  marginTop: '10px', 
+                  padding: '10px', 
+                  backgroundColor: verificationMessage.includes('success') ? '#e6f7e6' : '#ffebeb',
+                  borderRadius: '4px'
+                }}>
+                  {verificationMessage}
+                </div>
+              )}
+              
+              <div style={{ marginTop: '20px' }}>
+                <p>Didn't receive the email?</p>
+                <button 
+                  onClick={handleResendVerification}
+                  disabled={resendingVerification}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    opacity: resendingVerification ? 0.7 : 1
+                  }}
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                </button>
+              </div>
+              
+              <div style={{ marginTop: '20px' }}>
+                <button
+                  onClick={() => {
+                    setNeedsVerification(false);
+                    setVerificationEmail('');
+                    setFormData({
+                      email: '',
+                      password: '',
+                      confirmPassword: '',
+                      firstName: '',
+                      lastName: '',
+                    });
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    marginTop: '10px'
+                  }}
+                >
+                  Back to Login
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">
