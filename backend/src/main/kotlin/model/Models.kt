@@ -120,6 +120,12 @@ data class AuthResponse(val email: String?, val token: String?, val message: Str
 data class UserRequest(val email: String, val password: String, val firstName: String? = null, val lastName: String? = null)
 
 @Serializable
+data class UserRegistrationResponse(
+    val user: User? = null,
+    val message: String = ""
+)
+
+@Serializable
 data class HearingTest @JsonCreator constructor(
     @JsonProperty("id") val id: String = UUID.randomUUID().toString(),
     @JsonProperty("userId") val userId: String? = null,

@@ -12,6 +12,7 @@ import model.LoginRequest
 import model.AuthResponse
 import model.User
 import model.VerificationRequest
+import model.UserRegistrationResponse
 
 
 fun Route.userRoutes() {
@@ -33,18 +34,24 @@ fun Route.userRoutes() {
                 
                 if (user != null) {
                     println("User registered successfully: ${userRequest.email}")
-                    call.respond(HttpStatusCode.Created, mapOf(
-                        "user" to user,
-                        "message" to message
-                    ))
+                    call.respond(
+                        HttpStatusCode.Created, 
+                        UserRegistrationResponse(user = user, message = message)
+                    )
                 } else {
                     println("Registration failed for ${userRequest.email}: $message")
-                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to message))
+                    call.respond(
+                        HttpStatusCode.BadRequest, 
+                        UserRegistrationResponse(user = null, message = message)
+                    )
                 }
             } catch (e: Exception) {
                 println("Exception during registration: ${e.message}")
                 e.printStackTrace()
-                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Failed to register: ${e.message}"))
+                call.respond(
+                    HttpStatusCode.BadRequest, 
+                    UserRegistrationResponse(user = null, message = "Failed to register: ${e.message}")
+                )
             }
         }
         
