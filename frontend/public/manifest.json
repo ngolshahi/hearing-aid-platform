@@ -18,6 +18,48 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/windows11/SmallTile.scale-100.png",
+      "sizes": "71x71",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/windows11/SmallTile.scale-125.png",
+      "sizes": "89x89",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/windows11/SmallTile.scale-150.png",
+      "sizes": "107x107",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/windows11/SmallTile.scale-200.png",
+      "sizes": "142x142",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/windows11/SmallTile.scale-400.png",
+      "sizes": "284x284",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android/android-launchericon-192-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android/android-launchericon-512-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "orientation": "portrait",
@@ -31,5 +73,14 @@
       "url": "/try-on-ar",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "prefer_related_applications": false,
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "display_override": ["standalone", "minimal-ui"],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
 } 

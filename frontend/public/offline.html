@@ -7,52 +7,115 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
             background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 600px;
-            padding: 40px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
             color: #333;
-            margin-bottom: 20px;
         }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .icon {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
         p {
-            color: #666;
+            font-size: 1.1rem;
             line-height: 1.6;
-            margin-bottom: 30px;
+            margin-bottom: 1.5rem;
+            color: #666;
         }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
+
+        .button {
+            display: inline-block;
             padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
             border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .features h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .features ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .features li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <img src="/pwa-192x192.png" alt="Hearing Aid Platform Logo" class="icon">
         <h1>You're Offline</h1>
-        <p>It looks like you've lost your internet connection. Some features may be limited until you're back online.</p>
-        <button onclick="window.location.reload()">Try Again</button>
+        <p>Don't worry! You can still access some features of the Hearing Aid Platform while offline.</p>
+        
+        <div class="features">
+            <h2>Available Offline Features:</h2>
+            <ul>
+                <li>View previously loaded hearing aid models</li>
+                <li>Access saved configurations</li>
+                <li>Review your hearing test history</li>
+                <li>Access the self-assessment tools</li>
+            </ul>
+        </div>
+
+        <p>Your changes will be synchronized when you're back online.</p>
+        <a href="/" class="button">Try Again</a>
     </div>
+
+    <script>
+        // Check if we're back online
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+    </script>
 </body>
 </html> 
