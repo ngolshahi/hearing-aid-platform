@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ARViewer from './ARViewer';
-import { isIOS } from '../utils/arUtils';
+import { isIOS, isMobile } from '../utils/arUtils';
 
 interface ARExperienceProps {
   modelPath: string;
@@ -11,12 +11,14 @@ interface ARExperienceProps {
 
 export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, color, imageUrl }) => {
   const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   useEffect(() => {
     setIsIOSDevice(isIOS());
+    setIsMobileDevice(isMobile());
   }, []);
 
-  // For iOS devices, just show the image with a link to the USDZ file
+  // For iOS devices, show the image with a link to the USDZ file
   if (isIOSDevice && usdzUrl) {
     return (
       <div className="ar-quicklook">
@@ -35,7 +37,21 @@ export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, 
     );
   }
 
-  // For all other devices, use the ARViewer component
+  // For desktop users, show the 3D model viewer with controls
+  if (!isMobileDevice) {
+    return (
+      <div className="ar-viewer-container">
+        <ARViewer modelPath={modelPath} color={color} />
+        <div className="ar-instructions">
+          <h3>3D Model Viewer</h3>
+          <p>Use your mouse to rotate, zoom, and pan the 3D model</p>
+          <p>AR is not available on desktop. Please use a mobile device for AR experience.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // For other mobile devices, use the ARViewer component
   return (
     <div className="ar-viewer-container">
       <ARViewer modelPath={modelPath} color={color} />
