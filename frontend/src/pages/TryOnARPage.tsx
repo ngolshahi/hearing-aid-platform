@@ -98,8 +98,8 @@ const TryOnARPage: React.FC = () => {
 
   // Helper function to determine the USDZ path based on hearing aid type
   const getUsdzPath = (hearingAid: any): string | undefined => {
-    // For now, return undefined as we don't have USDZ models yet
-    return undefined;
+    // Return the path to the USDZ file for Quick Look on iOS devices
+    return '/models/hearing-aid-model.usdz';
   };
 
   return (

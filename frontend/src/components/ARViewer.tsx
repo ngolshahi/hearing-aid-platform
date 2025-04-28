@@ -26,6 +26,7 @@ interface ARViewerProps {
   scale?: number;
   position?: [number, number, number];
   rotation?: [number, number, number];
+  color?: string;
 }
 
 // Pre-load the model
@@ -37,11 +38,25 @@ const Model: React.FC<{
   scale: number;
   position: [number, number, number];
   rotation: [number, number, number];
-}> = ({ modelPath, scale, position, rotation }) => {
+  color?: string;
+}> = ({ modelPath, scale, position, rotation, color }) => {
   const { scene } = useGLTF(modelPath);
   
   // Clone the scene to avoid modifying the cached original
   const clonedScene = scene.clone();
+  
+  // Apply color if provided
+  if (color) {
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: color,
+          metalness: 0.5,
+          roughness: 0.5,
+        });
+      }
+    });
+  }
   
   return (
     <primitive 
@@ -66,7 +81,8 @@ const ARViewer: React.FC<ARViewerProps> = ({
   modelPath,
   scale = 1,
   position = [0, 0, 0],
-  rotation = [0, 0, 0]
+  rotation = [0, 0, 0],
+  color
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -198,10 +214,11 @@ const ARViewer: React.FC<ARViewerProps> = ({
         <ambientLight intensity={0.5} />
         <directionalLight position={[1, 1, 1]} intensity={0.8} />
         <Model 
-          modelPath={modelPath} 
-          scale={scale} 
-          position={position} 
-          rotation={rotation} 
+          modelPath={modelPath}
+          scale={scale}
+          position={position}
+          rotation={rotation}
+          color={color}
         />
         <OrbitControls 
           enableZoom={true}
