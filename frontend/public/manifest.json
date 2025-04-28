@@ -8,13 +8,13 @@
   "theme_color": "#2c5282",
   "icons": [
     {
-      "src": "/pwa-180x180.png",
-      "sizes": "180x180",
+      "src": "/favicons/android-chrome-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/pwa-512x512.png",
+      "src": "/favicons/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -48,18 +48,6 @@
       "sizes": "284x284",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/android/android-launchericon-192-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/android/android-launchericon-512-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
     }
   ],
   "orientation": "portrait",
@@ -71,7 +59,7 @@
       "short_name": "AR",
       "description": "Try hearing aids in AR",
       "url": "/try-on-ar",
-      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/favicons/android-chrome-192x192.png", "sizes": "192x192" }]
     }
   ],
   "prefer_related_applications": false,
