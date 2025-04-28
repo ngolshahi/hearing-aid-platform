@@ -76,6 +76,23 @@ export interface SpeechInNoiseTestResponse {
   recommendation: string;
 }
 
+// Define noise file paths
+const noiseFiles = {
+  restaurant: {
+    low: '/audio/noise/restaurant-low.mp3',
+    medium: '/audio/noise/restaurant-medium.mp3',
+    high: '/audio/noise/restaurant-high.mp3'
+  },
+  street: {
+    low: '/audio/noise/street-low.mp3',
+    medium: '/audio/noise/street-medium.mp3',
+    high: '/audio/noise/street-high.mp3'
+  }
+};
+
+// Create audio context
+const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
 /**
  * Submit hearing test results to the backend
  */
@@ -481,48 +498,54 @@ const speechConfig = SpeechConfig.fromSubscription(
 
 // Function to play a sentence with background noise
 export const playSpeechInNoise = async (
-  sentence: string,
-  noiseLevel: 'low' | 'medium' | 'high',
-  noiseType: 'cafe' | 'street' | 'restaurant'
+  text: string,
+  noiseType: 'restaurant' | 'street' = 'restaurant',
+  noiseLevel: 'low' | 'medium' | 'high' = 'medium'
 ): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      // Create audio config for output
-      const audioConfig = AudioConfig.fromDefaultSpeakerOutput();
-      const synthesizer = new SpeechSynthesizer(speechConfig, audioConfig);
-
-      // Load background noise audio
-      const noiseAudio = new Audio(`/audio/noise/${noiseType}-${noiseLevel}.mp3`);
-      noiseAudio.loop = true;
-      noiseAudio.volume = getNoiseVolume(noiseLevel);
-
-      // Start playing background noise
-      noiseAudio.play();
-
-      // Synthesize and play the speech
-      synthesizer.speakTextAsync(
-        sentence,
-        (result) => {
-          if (result.reason === ResultReason.SynthesizingAudioCompleted) {
-            // Stop background noise after speech is complete
-            noiseAudio.pause();
-            noiseAudio.currentTime = 0;
-            synthesizer.close();
-            resolve();
-          } else {
-            synthesizer.close();
-            reject(new Error('Speech synthesis failed'));
-          }
-        },
-        (error) => {
-          synthesizer.close();
-          reject(error);
-        }
-      );
-    } catch (error) {
-      reject(error);
-    }
-  });
+  try {
+    // Use standardized noise settings for consistent test conditions
+    const standardizedNoiseType = 'restaurant';
+    const standardizedNoiseLevel = 'medium';
+    
+    // Load background noise
+    const noiseFile = noiseFiles[standardizedNoiseType][standardizedNoiseLevel];
+    const noiseResponse = await fetch(noiseFile);
+    const noiseArrayBuffer = await noiseResponse.arrayBuffer();
+    const noiseAudioBuffer = await audioContext.decodeAudioData(noiseArrayBuffer);
+    
+    // Create noise source
+    const noiseSource = audioContext.createBufferSource();
+    noiseSource.buffer = noiseAudioBuffer;
+    noiseSource.loop = true;
+    
+    // Create gain node for noise
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.value = 0.5; // Standardized noise level
+    
+    // Connect noise nodes
+    noiseSource.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+    
+    // Start noise
+    noiseSource.start();
+    
+    // Synthesize speech
+    const speech = new SpeechSynthesisUtterance(text);
+    speech.rate = 1.0;
+    speech.pitch = 1.0;
+    speech.volume = 1.0;
+    
+    // Play speech
+    window.speechSynthesis.speak(speech);
+    
+    // Stop noise when speech ends
+    speech.onend = () => {
+      noiseSource.stop();
+    };
+  } catch (error) {
+    console.error('Error playing speech in noise:', error);
+    throw error;
+  }
 };
 
 // Function to recognize speech
@@ -533,7 +556,7 @@ export const recognizeSpeech = async (): Promise<string> => {
       const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
       recognizer.recognizeOnceAsync(
-        (result) => {
+        (result: sdk.SpeechRecognitionResult) => {
           if (result.reason === ResultReason.RecognizedSpeech) {
             resolve(result.text);
           } else {
@@ -541,7 +564,7 @@ export const recognizeSpeech = async (): Promise<string> => {
           }
           recognizer.close();
         },
-        (error) => {
+        (error: string) => {
           recognizer.close();
           reject(error);
         }
@@ -589,4 +612,18 @@ export const submitSpeechInNoiseTest = async (
     console.error('Error submitting speech-in-noise test results:', error);
     throw error;
   }
+};
+
+const synthesizer = new SpeechSynthesizer(speechConfig);
+synthesizer.synthesisStarted = (s: any, e: any) => {
+  console.log('Speech synthesis started');
+};
+synthesizer.synthesizing = (s: any, e: any) => {
+  console.log('Speech synthesizing');
+};
+synthesizer.synthesisCompleted = (s: any, e: any) => {
+  console.log('Speech synthesis completed');
+};
+synthesizer.synthesisCanceled = (s: any, e: any) => {
+  console.log('Speech synthesis canceled');
 }; 

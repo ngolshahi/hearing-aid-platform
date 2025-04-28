@@ -35,8 +35,8 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [results, setResults] = useState<Record<string, number>>({});
-  const [noiseLevel, setNoiseLevel] = useState<'low' | 'medium' | 'high'>('medium');
-  const [noiseType, setNoiseType] = useState<'restaurant' | 'street'>('restaurant');
+  const noiseLevel = 'medium' as const;
+  const noiseType = 'restaurant' as const;
   const [testCompleted, setTestCompleted] = useState(false);
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [isBackgroundNoisePlaying, setIsBackgroundNoisePlaying] = useState(false);
@@ -109,7 +109,7 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
         await new Promise<void>((resolve, reject) => {
           synthesizer.speakTextAsync(
             part.text,
-            (result) => {
+            (result: sdk.SpeechSynthesisResult) => {
               if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
                 // Create a blob from the audio data
                 const audioData = result.audioData;
@@ -138,7 +138,7 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
                 reject(new Error('Speech synthesis failed'));
               }
             },
-            (error) => {
+            (error: string) => {
               synthesizer.close();
               reject(error);
             }
@@ -310,33 +310,6 @@ const SpeechInNoiseTest: React.FC<SpeechInNoiseTestProps> = ({ onComplete, onCan
         <>
           <div className="test-progress">
             Question {currentQuestion + 1} of {questions.length}
-          </div>
-          
-          <div className="noise-controls">
-            <div className="noise-level">
-              <label>Noise Level:</label>
-              <select 
-                value={noiseLevel}
-                onChange={(e) => setNoiseLevel(e.target.value as 'low' | 'medium' | 'high')}
-                disabled={isPlaying || isBackgroundNoisePlaying}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-            
-            <div className="noise-type">
-              <label>Environment:</label>
-              <select 
-                value={noiseType}
-                onChange={(e) => setNoiseType(e.target.value as 'restaurant' | 'street')}
-                disabled={isPlaying || isBackgroundNoisePlaying}
-              >
-                <option value="restaurant">Restaurant</option>
-                <option value="street">Street</option>
-              </select>
-            </div>
           </div>
           
           <div className="test-controls">
