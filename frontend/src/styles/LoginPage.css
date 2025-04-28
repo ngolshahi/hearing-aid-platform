@@ -157,6 +157,35 @@
   text-decoration: underline;
 }
 
+.auth-switch {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.auth-switch p {
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.auth-switch button {
+  background: none;
+  border: none;
+  color: #2c5282;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.auth-switch button:hover {
+  background-color: rgba(44, 82, 130, 0.1);
+  text-decoration: underline;
+}
+
 .auth-image {
   display: none;
 }
