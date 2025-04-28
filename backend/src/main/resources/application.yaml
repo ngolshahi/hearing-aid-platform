@@ -3,7 +3,16 @@ ktor:
         modules:
             - com.example.com.ApplicationKt.module
     deployment:
-        port: 8080
+        port: 8443
+        ssl:
+            keyStore: ssl/keystore.p12
+            keyAlias: localhost
+            keyStorePassword: ""
+            privateKeyPassword: ""
+            keyStoreType: PKCS12
+            trustStore: ssl/localhost.pem
+            trustStorePassword: ""
+            trustStoreType: PKCS12
 
 # Azure Services Configuration
 azure:

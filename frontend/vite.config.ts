@@ -13,16 +13,16 @@ export default defineConfig({
       manifest: {
         name: 'Hearing Aid Platform',
         short_name: 'HearingAid',
-        description: 'A platform to manage hearing aids and appointments',
+        description: 'Try on hearing aids in AR',
         theme_color: '#ffffff',
         icons: [
           {
-            src: '/pwa-192x192.png',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/pwa-512x512.png',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           }
@@ -32,5 +32,11 @@ export default defineConfig({
   ],
   define: {
     'process.env': {}
+  },
+  server: {
+    https: {
+      key: './localhost-key.pem',
+      cert: './localhost.pem',
+    }
   }
 })

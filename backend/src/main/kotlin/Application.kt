@@ -30,6 +30,8 @@ fun Application.module() {
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowCredentials = true
+        allowNonSimpleContentTypes = true
+        allowSameOrigin = true
     }    
 
     configureRouting()
