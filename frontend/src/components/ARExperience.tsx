@@ -28,19 +28,6 @@ export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, 
     checkARSupport();
   }, []);
 
-  const handleQuickLook = () => {
-    if (!usdzUrl) {
-      setError('USDZ model not available for Quick Look');
-      return;
-    }
-
-    // Create a temporary anchor element to trigger Quick Look
-    const anchor = document.createElement('a');
-    anchor.setAttribute('rel', 'ar');
-    anchor.setAttribute('href', usdzUrl);
-    anchor.click();
-  };
-
   if (error) {
     return (
       <div className="ar-error">
@@ -65,18 +52,21 @@ export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, 
     return (
       <div className="ar-quicklook">
         <ARViewer modelPath={modelPath} color={color} />
-        <button 
-          onClick={handleQuickLook}
-          className="quicklook-button"
-          disabled={!usdzUrl}
-        >
-          View in AR
-        </button>
-        {!usdzUrl && (
+        
+        {usdzUrl ? (
+          <a 
+            href={usdzUrl} 
+            rel="ar" 
+            className="quicklook-button"
+          >
+            View in AR
+          </a>
+        ) : (
           <p className="quicklook-warning">
             USDZ model not available for Quick Look. Please contact support.
           </p>
         )}
+        
         <div className="ar-instructions">
           <h3>How to use AR on iOS:</h3>
           <ol>
