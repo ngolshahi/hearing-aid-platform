@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Adjust this URL based on where your backend is running
-const API_URL = 'http://192.168.0.244:8080/api';
+const API_URL = '/api';
 
 // Feature interface for hearing aids
 export interface Feature {
@@ -40,7 +40,7 @@ export interface HearingAid {
 // Get all hearing aids
 export const getHearingAids = async (): Promise<HearingAid[]> => {
   try {
-    const response = await axios.get<HearingAid[]>(`${API_URL}/hearingAids`);
+    const response = await axios.get<HearingAid[]>(`/api/hearingAids`);
     return response.data;
   } catch (error) {
     console.error('Error fetching hearing aids:', error);

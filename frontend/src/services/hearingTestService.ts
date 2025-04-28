@@ -98,7 +98,7 @@ const audioContext = new (window.AudioContext || (window as any).webkitAudioCont
  */
 export const submitHearingTestResults = async (testData: HearingTestRequest): Promise<HearingTestResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test`, {
+    const response = await fetch(`/api/hearing-test`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export const submitHearingTestResults = async (testData: HearingTestRequest): Pr
  */
 export const getHearingTestHistory = async (userId: string): Promise<any> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test/${userId}`, {
+    const response = await fetch(`/api/hearing-test/${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ export const getHearingTestHistory = async (userId: string): Promise<any> => {
  */
 export const getContextualTests = async (): Promise<ContextualTest[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test/contextual`, {
+    const response = await fetch(`/api/hearing-test/contextual`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ export const getContextualTests = async (): Promise<ContextualTest[]> => {
  */
 export const getContextualTest = async (testId: string): Promise<ContextualTest> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test/contextual/${testId}`, {
+    const response = await fetch(`/api/hearing-test/contextual/${testId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ export const getContextualTest = async (testId: string): Promise<ContextualTest>
  */
 export const submitContextualTestResults = async (testResult: ContextualTestResult): Promise<any> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test/contextual`, {
+    const response = await fetch(`/api/hearing-test/contextual`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -220,7 +220,7 @@ export const submitContextualTestResults = async (testResult: ContextualTestResu
  */
 export const submitCompleteHearingTest = async (testResult: CompleteHearingTestResult): Promise<any> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test/complete`, {
+    const response = await fetch(`/api/hearing-test/complete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -594,7 +594,7 @@ export const submitSpeechInNoiseTest = async (
   testData: SpeechInNoiseTestRequest
 ): Promise<SpeechInNoiseTestResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/hearing-test/speech-in-noise`, {
+    const response = await fetch(`/api/hearing-test/speech-in-noise`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
