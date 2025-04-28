@@ -6,9 +6,10 @@ interface ARExperienceProps {
   modelPath: string;
   usdzUrl?: string;
   color?: string;
+  imageUrl?: string;
 }
 
-export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, color }) => {
+export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, color, imageUrl }) => {
   const [isIOSDevice, setIsIOSDevice] = useState(false);
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export const ARExperience: React.FC<ARExperienceProps> = ({ modelPath, usdzUrl, 
       <div className="ar-quicklook">
         <a href={usdzUrl} rel="ar">
           <img 
-            src="/images/hearing-aid-preview.jpg" 
+            src={imageUrl || "/images/hearing-aid-preview.jpg"} 
             alt="Hearing Aid" 
             style={{ maxWidth: '100%', height: 'auto' }}
           />

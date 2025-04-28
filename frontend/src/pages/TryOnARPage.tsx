@@ -76,6 +76,7 @@ const TryOnARPage: React.FC = () => {
           modelPath={modelPath}
           usdzUrl={usdzPath}
           color={hearingAidData.color}
+          imageUrl={hearingAidData.imageUrl || hearingAidData.images?.[0]}
         />
         <div className="ar-instructions">
           <h3>How to use AR:</h3>
