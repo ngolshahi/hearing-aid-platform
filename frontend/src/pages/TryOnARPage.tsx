@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/TryOnARPage.css';
 import { getHearingAidById } from '../services';
-import ARViewer from '../components/ARViewer';
+import { ARExperience } from '../components/ARExperience';
 
 const TryOnARPage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,14 +68,14 @@ const TryOnARPage: React.FC = () => {
 
     // Get the model path based on hearing aid type
     const modelPath = getModelPath(hearingAidData);
+    const usdzPath = getUsdzPath(hearingAidData);
     
     return (
       <div className="ar-viewer-container">
-        <ARViewer 
+        <ARExperience 
           modelPath={modelPath}
-          scale={0.8}
-          position={[0, 0, 0]}
-          rotation={[0, Math.PI / 4, 0]}
+          usdzUrl={usdzPath}
+          color={hearingAidData.color}
         />
         <div className="ar-instructions">
           <h3>How to use AR:</h3>
@@ -94,31 +94,12 @@ const TryOnARPage: React.FC = () => {
   const getModelPath = (hearingAid: any): string => {
     // Always use the existing model file
     return '/models/hearing-aid-model.glb';
-    
-    // The following code is commented out until we have the specific model files
-    /*
-    // Default model path
-    let modelPath = '/models/hearing-aid-model.glb';
-    
-    // If the hearing aid has a specific model path, use it
-    if (hearingAid.modelPath) {
-      modelPath = hearingAid.modelPath;
-    } else {
-      // Otherwise, determine based on type
-      const type = hearingAid.type?.toLowerCase() || '';
-      if (type.includes('ric')) {
-        modelPath = '/models/ric-hearing-aid.glb';
-      } else if (type.includes('bte')) {
-        modelPath = '/models/bte-hearing-aid.glb';
-      } else if (type.includes('itc')) {
-        modelPath = '/models/itc-hearing-aid.glb';
-      } else if (type.includes('cic')) {
-        modelPath = '/models/cic-hearing-aid.glb';
-      }
-    }
-    
-    return modelPath;
-    */
+  };
+
+  // Helper function to determine the USDZ path based on hearing aid type
+  const getUsdzPath = (hearingAid: any): string | undefined => {
+    // For now, return undefined as we don't have USDZ models yet
+    return undefined;
   };
 
   return (
