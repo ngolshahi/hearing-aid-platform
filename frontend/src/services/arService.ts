@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 // Adjust this URL based on where your backend is running - should match hearingAidService.ts
-const API_URL = 'http://192.168.0.244:8080/api';
+const API_URL = '/api';
 
 // Cache for hearing aid 3D models and textures
 const modelCache: Record<string, THREE.Group> = {};

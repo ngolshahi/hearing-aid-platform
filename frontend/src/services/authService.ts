@@ -2,7 +2,7 @@ import axios from 'axios';
 import { UserDetails } from './appointmentService';
 
 // Adjust this URL based on where your backend is running
-const API_URL = 'http://192.168.0.244:8080/api';
+const API_URL = '/api';
 
 // Authentication interfaces
 export interface RegisterRequest {

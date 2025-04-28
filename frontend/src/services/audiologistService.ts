@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Adjust this URL based on where your backend is running
-const API_URL = 'http://192.168.0.244:8080/api';
+const API_URL = '/api';
 
 // Interfaces
 export interface WorkHours {
