@@ -1,6 +1,5 @@
 .auth-page {
-  min-height: calc(100vh - 72px);
-  margin-top: 72px;
+  min-height: 100vh;
   padding: 2rem 0;
   background-color: #f7fafc;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -12,7 +11,7 @@
 .auth-container {
   width: 100%;
   max-width: 500px;
-  margin: 0 2rem;
+  margin: 0 auto;
   padding: 2rem;
   background: white;
   border-radius: 16px;
@@ -21,32 +20,35 @@
 }
 
 .auth-content {
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .auth-header h1 {
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   color: #1a202c;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
 }
 
 .auth-header p {
   color: #4a5568;
   font-size: 1.1rem;
+  line-height: 1.5;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  width: 100%;
 }
 
 .name-fields {
@@ -59,12 +61,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .form-group label {
   color: #1a202c;
   font-weight: 500;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .form-group input {
@@ -73,6 +76,7 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
+  width: 100%;
 }
 
 .form-group input:focus {
@@ -117,13 +121,14 @@
   background: #2c5282;
   color: white;
   border: none;
-  padding: 1rem;
+  padding: 0.875rem;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  width: 100%;
 }
 
 .submit-button:hover {
@@ -192,21 +197,41 @@
 
 /* Mobile Styles */
 @media (max-width: 768px) {
+  .auth-page {
+    padding: 1rem 0;
+    min-height: calc(100vh - 72px);
+    margin-top: 72px;
+  }
+  
   .auth-container {
     margin: 0 1rem;
-    padding: 1rem;
+    padding: 1.5rem;
+    max-width: 100%;
   }
 
   .auth-content {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
   .auth-header h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-header p {
+    font-size: 1rem;
   }
 
   .name-fields {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+  .auth-page {
+    min-height: calc(100vh - 72px);
+    margin-top: 72px;
   }
 }
 
