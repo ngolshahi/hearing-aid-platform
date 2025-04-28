@@ -92,6 +92,11 @@ const TryOnARPage: React.FC = () => {
 
   // Helper function to determine the model path based on hearing aid type
   const getModelPath = (hearingAid: any): string => {
+    // Always use the existing model file
+    return '/models/hearing-aid-model.glb';
+    
+    // The following code is commented out until we have the specific model files
+    /*
     // Default model path
     let modelPath = '/models/hearing-aid-model.glb';
     
@@ -113,6 +118,7 @@ const TryOnARPage: React.FC = () => {
     }
     
     return modelPath;
+    */
   };
 
   return (
