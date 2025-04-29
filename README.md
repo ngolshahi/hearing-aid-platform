@@ -120,13 +120,15 @@ Create a .env file in the root directory of your frontend project and add your F
 Example .env file for frontend:
 
 ```bash
-FIREBASE_API_KEY=your_firebase_api_key
-FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
-FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
-FIREBASE_APP_ID=your_firebase_app_id
-FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
+VITE_AZURE_SPEECH_KEY=your_azure_speech_key
+VITE_AZURE_SPEECH_REGION=your_azure_speech_region
 ```
 
 ### 3. Start the frontend
@@ -137,7 +139,7 @@ To start the frontend application in development mode, run the following command
 npm run dev
 ```
 
-This will start the React app on http://localhost:5173.
+This will start the React app on https://localhost:5173.
 
 ## Running the Application
 
