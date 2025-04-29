@@ -1,16 +1,43 @@
 # Hearing Aid Platform
 
-This project is a **Progressive Web App (PWA)** that allows users to view and select hearing aids, take tests, and book consultations with audiologists. It also includes a backend built with **Ktor** and **Azure Cosmos DB** for managing user data and services.
+This project is a **web application** that also functions as a **Progressive Web App (PWA)**, providing an augmented reality experience for visualizing hearing aids. The platform allows users to view hearing aid models in their real environment using AR technology, with support for both iOS Quick Look and WebXR standards. Users can access the platform through any modern web browser, with the option to install it as a PWA for an enhanced mobile experience.
 
 ---
 
 ## Table of Contents
 
+- [Features](#features)
 - [Requirements](#requirements)
 - [Backend Setup](#backend-setup)
 - [Frontend Setup](#frontend-setup)
 - [Running the Application](#running-the-application)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## Features
+
+### Platform Access
+- **Web Application**: Access through any modern web browser
+- **Progressive Web App**: Installable on mobile devices for a native app-like experience
+- **Offline Support**: Basic functionality available without internet connection (PWA feature)
+- **Cross-Platform Compatibility**: Works on desktop and mobile browsers
+
+### Augmented Reality Experience
+- **iOS Quick Look**: On iOS devices, users can view hearing aids in their environment using Apple's Quick Look AR
+- **WebXR Support**: On compatible devices, users can experience AR through the WebXR standard
+- **3D Model Viewer**: For devices without AR support, users can interact with detailed 3D models of hearing aids
+- **Multiple Color Options**: Visualization of hearing aids in different available colors
+- **Real-time Environment Integration**: Place and view hearing aids in your actual surroundings
+
+### Technical Features
+- **Cross-Platform Support**: 
+  - iOS: Native AR experience via Quick Look
+  - Android/Desktop: WebXR implementation
+  - Fallback: Interactive 3D model viewer
+- **Responsive Design**: Adapts to different screen sizes and device capabilities
+- **High-Quality 3D Models**: Detailed hearing aid models with accurate textures and materials
+- **Device Compatibility Detection**: Automatically selects the best viewing experience based on device capabilities
 
 ---
 
@@ -52,14 +79,18 @@ Create a .env file in the root directory of your backend project and add your Az
 Example .env file for backend:
 
 ```bash
-AZURE_COSMOS_DB_URI="https://hearing-aid-db.documents.azure.com:443/"
-AZURE_COSMOS_DB_KEY="16P2pkpvoifBx2vOzWaeIFl4WjSM8pJdazbNqZLJtHRjDuQn0NFTXMpuWlGghCr0PSjePwNPKLu9ACDblTd15Q=="
+AZURE_COSMOS_DB_URI="your_cosmos_db_uri"
+AZURE_COSMOS_DB_KEY="your_cosmos_db_key"
 AZURE_COSMOS_DB_DATABASE="HearingAidDB"
 USERS_CONTAINER="users"
 HEARING_AID_CONTAINER="hearingAids"
 APPOINTMENTS_CONTAINER="appointments"
 AUDIOLOGISTS_CONTAINER="audiologists"
 APPOINTMENT_TYPES_CONTAINER="appointmentTypes"
+
+# Optional: For enhanced ear detection
+AZURE_VISION_KEY="your_vision_api_key"
+AZURE_VISION_ENDPOINT="your_vision_endpoint"
 ```
 
 ### 3. Start the backend
@@ -196,17 +227,37 @@ The AR implementation uses two ear detection approaches:
 
 ## Usage
 
+### iOS AR Experience
 1. Navigate to a hearing aid product page
-2. Click the "Try On with AR" button
-3. On mobile:
-   - Grant camera permissions
-   - Position your ear in the center of the frame
-   - The hearing aid will be overlaid in real-time
-   - Use the "Switch Camera" button to change camera
-   - Use the "Capture" button to save an image
+2. Click the "View in AR" button
+3. The Quick Look AR viewer will open
+4. Point your camera at a flat surface
+5. Tap to place the hearing aid model
+6. Move around to view the hearing aid from different angles
+7. Use gestures to rotate and scale the model
 
-4. On desktop:
-   - Click to upload a photo of your ear
-   - Wait for processing to complete
-   - View the before/after comparison
-   - Download the processed image if desired
+### WebXR Experience (Android/Desktop)
+1. Navigate to a hearing aid product page
+2. Click the "View in AR" button
+3. Grant camera permissions when prompted
+4. Point your camera at a flat surface
+5. Tap to place the hearing aid model
+6. Move around to view the hearing aid from different angles
+7. Use touch/mouse gestures to interact with the model
+
+### 3D Model Viewer (Non-AR Devices)
+1. Navigate to a hearing aid product page
+2. Click the "View 3D Model" button
+3. The 3D model viewer will open
+4. Use mouse/touch controls to:
+   - Rotate the model
+   - Zoom in/out
+   - Pan the view
+5. Select different colors to see various style options
+
+### Tips for Best Results
+- Ensure good lighting for better AR tracking
+- Use a flat, well-textured surface for model placement
+- Keep your device steady while placing the model
+- For the best AR experience, use a modern iOS device or WebXR-compatible browser
+- The 3D model viewer works on all devices and provides a high-quality alternative
