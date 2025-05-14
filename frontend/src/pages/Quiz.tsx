@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/Quiz.css';
 
 interface QuizOption {
@@ -103,6 +103,12 @@ const Quiz: React.FC<QuizProps> = ({ type, onClose, onComplete }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
+  // Reset the quiz state when the component mounts
+  useEffect(() => {
+    setCurrentQuestion(0);
+    setAnswers({});
+  }, []);
+
   const handleOptionSelect = (questionId: string, optionId: string) => {
     setAnswers(prev => ({
       ...prev,
@@ -189,7 +195,7 @@ const Quiz: React.FC<QuizProps> = ({ type, onClose, onComplete }) => {
     } else {
       // Map appointment quiz answers to appointment types based on multiple questions
       if (answers['1'] === 'wax') {
-        return { appointmentType: 'wax-removal' };
+        return { appointmentType: 'microsuction' };
       }
       if (answers['1'] === 'existing') {
         return { appointmentType: 'aftercare' };

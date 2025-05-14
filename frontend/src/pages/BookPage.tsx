@@ -191,8 +191,12 @@ const BookPage: React.FC = () => {
   const handleQuizComplete = (results: any) => {
     setShowQuiz(false);
     if (results.appointmentType) {
-      const appointmentMatch = appointmentTypes.find(apt => apt.id === results.appointmentType);
+      const appointmentMatch = appointmentTypes.find(apt => 
+        apt.id === results.appointmentType
+      );
+      
       if (appointmentMatch) {
+        // Ensure we update both the displayed type name and its ID
         setAppointmentType(appointmentMatch.type);
         setAppointmentTypeId(appointmentMatch.id);
       }
