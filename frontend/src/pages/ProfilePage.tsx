@@ -283,6 +283,24 @@ const ProfilePage: React.FC = () => {
 
   // Handle reschedule appointment button click
   const handleRescheduleClick = (appointment: Appointment) => {
+    // If the appointment doesn't have appointmentTypeId, try to extract it from the appointmentType
+    if (!appointment.appointmentTypeId) {
+      // This is a fallback approach - in a real implementation, the backend should provide the appointmentTypeId
+      // Here we're making a simplified assumption based on appointment type naming
+      const defaultAppointmentTypes: Record<string, string> = {
+        'Hearing Test': 'hearing-test',
+        'Hearing Aid Fitting': 'hearing-aid-fitting',
+        'Follow-up Appointment': 'follow-up',
+        'Consultation': 'consultation'
+      };
+      
+      // Set a default appointmentTypeId based on the appointment type or use a fallback
+      appointment = {
+        ...appointment,
+        appointmentTypeId: defaultAppointmentTypes[appointment.appointmentType] || 'consultation'
+      };
+    }
+
     setSelectedAppointment(appointment);
     setRescheduleDate(appointment.date);
     setRescheduleTime('');
@@ -350,26 +368,45 @@ const ProfilePage: React.FC = () => {
       const rescheduleData: RescheduleRequest = {
         appointmentId: selectedAppointment.id,
         newDate: rescheduleDate,
-        newTime: rescheduleTime
+        newTime: rescheduleTime,
+        // Add the required fields for the new booking approach
+        appointmentTypeId: selectedAppointment.appointmentTypeId || '', // This field might need to be added to the Appointment interface
+        userId: selectedAppointment.userId,
+        notes: selectedAppointment.notes,
+        userDetails: selectedAppointment.userDetails
       };
       
       const response = await rescheduleAppointment(rescheduleData);
       
       if (response.success) {
-        // Update the appointments list
-        setAppointments(prev => 
-          prev.map(appt => 
-            appt.id === selectedAppointment.id 
-              ? { 
-                  ...appt, 
-                  date: rescheduleDate, 
-                  startTime: rescheduleTime,
-                  // Calculate end time based on duration (assuming 30 minutes for this example)
-                  endTime: calculateEndTime(rescheduleTime, 30)
-                } 
-              : appt
-          )
-        );
+        // Remove the cancelled appointment and add the new one
+        setAppointments(prev => {
+          // Filter out the cancelled appointment
+          const filteredAppointments = prev.filter(appt => 
+            appt.id !== selectedAppointment.id
+          );
+          
+          // Add the new appointment if we have its ID
+          if (response.appointmentId) {
+            const newAppointment: Appointment = {
+              id: response.appointmentId,
+              audiologistId: selectedAppointment.audiologistId,
+              appointmentType: selectedAppointment.appointmentType,
+              appointmentTypeId: selectedAppointment.appointmentTypeId || '',
+              date: rescheduleDate,
+              startTime: rescheduleTime,
+              endTime: calculateEndTime(rescheduleTime, 30),
+              status: 'booked',
+              userId: selectedAppointment.userId,
+              notes: selectedAppointment.notes,
+              userDetails: selectedAppointment.userDetails
+            };
+            
+            return [...filteredAppointments, newAppointment];
+          }
+          
+          return filteredAppointments;
+        });
         
         setActionStatus({
           success: true,
