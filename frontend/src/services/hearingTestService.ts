@@ -1,4 +1,3 @@
-import { API_BASE_URL } from './config';
 import { SpeechConfig, SpeechSynthesizer, AudioConfig, ResultReason, SpeechRecognizer } from 'microsoft-cognitiveservices-speech-sdk';
 
 export interface ToneTestResult {
