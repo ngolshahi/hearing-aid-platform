@@ -7,7 +7,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import services.AppointmentService
 import model.AppointmentRequest
-import model.RescheduleRequest
 
 fun Route.appointmentRoutes() {
     val appointmentService = AppointmentService()
@@ -139,29 +138,6 @@ fun Route.appointmentRoutes() {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     mapOf("message" to "Failed to cancel appointment: ${e.message}")
-                )
-            }
-        }
-        
-        put("/{appointmentId}/reschedule") {
-            try {
-                val appointmentId = call.parameters["appointmentId"] ?: return@put call.respond(
-                    HttpStatusCode.BadRequest,
-                    mapOf("message" to "Missing appointmentId parameter")
-                )
-                
-                val rescheduleRequest = call.receive<RescheduleRequest>()
-                val response = appointmentService.rescheduleAppointment(appointmentId, rescheduleRequest)
-                
-                if (response.success) {
-                    call.respond(HttpStatusCode.OK, response)
-                } else {
-                    call.respond(HttpStatusCode.BadRequest, response)
-                }
-            } catch (e: Exception) {
-                call.respond(
-                    HttpStatusCode.InternalServerError,
-                    mapOf("message" to "Failed to reschedule appointment: ${e.message}")
                 )
             }
         }
