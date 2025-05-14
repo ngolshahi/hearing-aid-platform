@@ -1175,3 +1175,107 @@
       width: 100%;
     }
   }
+
+  /* Appointment status message */
+  .appointment-status-message {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem;
+    color: #718096;
+    font-style: italic;
+  }
+
+  /* Action status messages */
+  .action-status {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+
+  .action-status.success {
+    background-color: rgba(72, 187, 120, 0.1);
+    color: #38a169;
+    border: 1px solid rgba(72, 187, 120, 0.2);
+  }
+
+  .action-status.error {
+    background-color: rgba(229, 62, 62, 0.1);
+    color: #e53e3e;
+    border: 1px solid rgba(229, 62, 62, 0.2);
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  /* Reschedule modal */
+  .reschedule-modal {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .reschedule-modal h2 {
+    margin-top: 0;
+    color: #2d3748;
+  }
+
+  .reschedule-modal p {
+    color: #718096;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .modal-status {
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-status.success {
+    background-color: rgba(72, 187, 120, 0.1);
+    color: #38a169;
+  }
+
+  .modal-status.error {
+    background-color: rgba(229, 62, 62, 0.1);
+    color: #e53e3e;
+  }
+
+  /* Disable button styles */
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Mobile styles */
+  @media (max-width: 768px) {
+    .modal-actions {
+      flex-direction: column;
+    }
+    
+    .reschedule-modal {
+      padding: 1.5rem;
+    }
+  }
