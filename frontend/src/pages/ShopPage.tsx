@@ -80,6 +80,8 @@ const ShopPage: React.FC = () => {
   // Track whether we've set filters from navigation
   const filtersSetFromNavigation = React.useRef(false);
 
+  const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
+
   // Check for filter parameters from navigation
   useEffect(() => {
     const state = location.state as { selectedType?: string; filterCategory?: string } | null;
@@ -252,6 +254,37 @@ const ShopPage: React.FC = () => {
     navigate(`/shop/product/${productId}`);
   };
 
+  const handleCompareClick = (event: React.MouseEvent, productId: string) => {
+    event.stopPropagation(); // Prevent navigation to product page
+    
+    setSelectedForComparison(prev => {
+      // Check if product is already selected for comparison
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        // Add product to comparison, limit to 3 products
+        if (prev.length < 3) {
+          return [...prev, productId];
+        } else {
+          alert('You can only compare up to 3 products at a time.');
+          return prev;
+        }
+      }
+    });
+  };
+
+  const navigateToCompare = () => {
+    if (selectedForComparison.length > 0) {
+      // Get the first selected product ID to use as the main product
+      const mainProductId = selectedForComparison[0];
+      
+      // Navigate to the product page of the first product with comparison data
+      navigate(`/shop/product/${mainProductId}`, { 
+        state: { compareIds: selectedForComparison } 
+      });
+    }
+  };
+
   const handleQuizComplete = (results: any) => {
     setShowQuiz(false);
     
@@ -376,6 +409,29 @@ const ShopPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Show comparison bar when products are selected */}
+        {selectedForComparison.length > 0 && (
+          <div className="comparison-bar">
+            <div className="comparison-info">
+              <span>{selectedForComparison.length} product{selectedForComparison.length > 1 ? 's' : ''} selected</span>
+            </div>
+            <div className="comparison-actions">
+              <button 
+                className="clear-selection"
+                onClick={() => setSelectedForComparison([])}
+              >
+                Clear Selection
+              </button>
+              <button 
+                className="compare-products-btn"
+                onClick={navigateToCompare}
+              >
+                Compare Products
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="shop-layout">
           {/* Filter Toggle for Mobile */}
@@ -559,6 +615,11 @@ const ShopPage: React.FC = () => {
                   >
                     <div className="product-image">
                       <img src={product.image} alt={product.name} />
+                      {selectedForComparison.includes(product.id) && (
+                        <div className="comparison-badge">
+                          Selected for comparison
+                        </div>
+                      )}
                     </div>
                     <div className="product-info">
                       <h3>{product.name}</h3>
@@ -581,7 +642,12 @@ const ShopPage: React.FC = () => {
                       </div>
                       <div className="product-actions">
                         <button className="primary-button">Add to Cart</button>
-                        <button className="secondary-button">Compare</button>
+                        <button 
+                          className={`secondary-button ${selectedForComparison.includes(product.id) ? 'active' : ''}`}
+                          onClick={(e) => handleCompareClick(e, product.id)}
+                        >
+                          {selectedForComparison.includes(product.id) ? 'Selected' : 'Compare'}
+                        </button>
                       </div>
                     </div>
                   </div>
