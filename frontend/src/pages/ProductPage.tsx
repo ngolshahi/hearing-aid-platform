@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { getHearingAidById, HearingAid as BasicHearingAid } from '../services/hearingAidService';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { getHearingAidById, getHearingAids, HearingAid as BasicHearingAid } from '../services/hearingAidService';
 import HearingAidVisualiser from '../components/HearingAidVisualiser';
 import '../styles/ProductPage.css';
 
@@ -48,15 +48,19 @@ const getColorName = (hexColor: string): string => {
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [product, setProduct] = useState<HearingAid | null>(null);
+  const [compareProducts, setCompareProducts] = useState<HearingAid[]>([]);
+  const [availableToCompare, setAvailableToCompare] = useState<HearingAid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visualiserSupported, setVisualiserSupported] = useState(false);
   const [showVisualiser, setShowVisualiser] = useState(false);
+  const [loadingCompare, setLoadingCompare] = useState(false);
 
   // Mock reviews data
   const reviews: Review[] = [
@@ -80,6 +84,44 @@ const ProductPage: React.FC = () => {
     },
     // Add more reviews...
   ];
+
+  // Check if we have products to compare from navigation
+  useEffect(() => {
+    const state = location.state as { compareIds?: string[] } | null;
+    
+    if (state?.compareIds && state.compareIds.length > 0) {
+      const fetchCompareProducts = async () => {
+        setLoadingCompare(true);
+        try {
+          // TypeScript non-null assertion operator (!) tells TypeScript that compareIds is definitely not undefined
+          const compareIds = state.compareIds!;
+          const productsToCompare: HearingAid[] = [];
+          
+          // Fetch each product
+          for (const productId of compareIds) {
+            try {
+              const product = await getHearingAidById(productId);
+              productsToCompare.push(product);
+            } catch (err) {
+              console.error(`Error fetching product ${productId} for comparison:`, err);
+            }
+          }
+          
+          setCompareProducts(productsToCompare);
+          setIsCompareModalOpen(true);
+          
+          // Clear navigation state to prevent reopening on refresh
+          navigate(location.pathname, { replace: true });
+        } catch (err) {
+          console.error('Error loading comparison products:', err);
+        } finally {
+          setLoadingCompare(false);
+        }
+      };
+      
+      fetchCompareProducts();
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -156,6 +198,32 @@ const ProductPage: React.FC = () => {
     fetchProductData();
   }, [id]);
 
+  // Fetch products available for comparison
+  useEffect(() => {
+    const fetchCompareProducts = async () => {
+      if (!product) return;
+      
+      try {
+        // Get all hearing aids for comparison
+        const allHearingAids = await getHearingAids();
+        
+        // Filter to show only hearing aids of the same type as current product
+        // and exclude the current product
+        const sameTypeProducts = allHearingAids.filter(
+          aid => aid.type === product.type && aid.id !== product.id
+        );
+        
+        setAvailableToCompare(sameTypeProducts);
+      } catch (err) {
+        console.error('Error fetching products for comparison:', err);
+      }
+    };
+
+    if (product) {
+      fetchCompareProducts();
+    }
+  }, [product]);
+
   // Calculate average rating
   const averageRating = reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
 
@@ -167,6 +235,113 @@ const ProductPage: React.FC = () => {
 
   const openCompareModal = () => {
     setIsCompareModalOpen(true);
+    // Initially add current product to comparison list if not already there
+    if (product && !compareProducts.some(p => p.id === product.id)) {
+      setCompareProducts([product]);
+    }
+  };
+
+  const closeCompareModal = () => {
+    setIsCompareModalOpen(false);
+  };
+
+  const toggleProductComparison = (productToToggle: HearingAid) => {
+    setCompareProducts(prevProducts => {
+      // Check if product is already in the comparison list
+      const isAlreadyComparing = prevProducts.some(p => p.id === productToToggle.id);
+      
+      if (isAlreadyComparing) {
+        // Remove product from comparison
+        return prevProducts.filter(p => p.id !== productToToggle.id);
+      } else {
+        // Add product to comparison, limit to 3 products total
+        if (prevProducts.length < 3) {
+          return [...prevProducts, productToToggle];
+        }
+        // If already comparing 3 products, show an alert or handle differently
+        alert('You can compare up to 3 products at a time. Please remove a product first.');
+        return prevProducts;
+      }
+    });
+  };
+
+  const renderComparisonTable = () => {
+    if (compareProducts.length === 0) return null;
+
+    // Get all unique specification keys from all products
+    const allSpecKeys = new Set<string>();
+    compareProducts.forEach(product => {
+      if (product.specifications) {
+        Object.keys(product.specifications).forEach(key => allSpecKeys.add(key));
+      }
+    });
+
+    return (
+      <table className="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            {compareProducts.map(product => (
+              <th key={product.id} className="product-column">
+                <div className="compared-product-header">
+                  <img src={product.image} alt={product.name} />
+                  <h3>{product.name}</h3>
+                  <button 
+                    className="remove-compare-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleProductComparison(product);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Price</td>
+            {compareProducts.map(product => (
+              <td key={`${product.id}-price`}>£{product.price.toLocaleString()}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Brand</td>
+            {compareProducts.map(product => (
+              <td key={`${product.id}-brand`}>{product.brand}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Type</td>
+            {compareProducts.map(product => (
+              <td key={`${product.id}-type`}>{product.type}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Rating</td>
+            {compareProducts.map(product => (
+              <td key={`${product.id}-rating`}>
+                <span className="stars">{'★'.repeat(Math.floor(product.rating))}</span>
+                <span className="rating-number">({product.rating})</span>
+              </td>
+            ))}
+          </tr>
+          {/* Specifications */}
+          {Array.from(allSpecKeys).map(specKey => (
+            <tr key={specKey}>
+              <td>{specKey}</td>
+              {compareProducts.map(product => (
+                <td key={`${product.id}-${specKey}`}>
+                  {product.specifications?.[specKey] || '—'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
   };
 
   const toggleVisualiser = () => {
@@ -357,10 +532,45 @@ const ProductPage: React.FC = () => {
         <div className="compare-modal">
           <div className="modal-content">
             <h2>Compare Models</h2>
-            {/* Add comparison content */}
+            <div className="compare-modal-content">
+              {loadingCompare ? (
+                <div className="loading-comparison">
+                  <p>Loading products for comparison...</p>
+                </div>
+              ) : (
+                <>
+                  {renderComparisonTable()}
+                  
+                  {/* Available products to add to comparison */}
+                  {compareProducts.length < 3 && (
+                    <div className="available-to-compare">
+                      <h3>Add to Comparison</h3>
+                      <div className="product-compare-options">
+                        {availableToCompare.map(product => (
+                          <div 
+                            key={product.id} 
+                            className="product-compare-option"
+                            onClick={() => toggleProductComparison(product)}
+                          >
+                            <img src={product.image} alt={product.name} />
+                            <h4>{product.name}</h4>
+                            <p className="product-compare-price">£{product.price.toLocaleString()}</p>
+                          </div>
+                        ))}
+                        
+                        {availableToCompare.length === 0 && (
+                          <p className="no-products">No other {product?.type} hearing aids available for comparison.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            
             <button 
               className="close-button"
-              onClick={() => setIsCompareModalOpen(false)}
+              onClick={closeCompareModal}
             >
               ×
             </button>
