@@ -11,6 +11,7 @@ import {
 import { 
   getUserAppointments, 
   getAudiologistAppointments, 
+  getAvailableTimeSlots,
   Appointment,
   cancelAppointment,
   rescheduleAppointment,
@@ -61,6 +62,7 @@ const ProfilePage: React.FC = () => {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [actionStatus, setActionStatus] = useState<{success: boolean, message: string} | null>(null);
+  const [fetchingTimeSlots, setFetchingTimeSlots] = useState(false);
 
   // Determine if the current user is an audiologist
   const isAudiologist = currentUser && 'qualifications' in currentUser;
@@ -281,6 +283,38 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Fetch available time slots when date changes during rescheduling
+  useEffect(() => {
+    const fetchAvailableTimeSlots = async () => {
+      if (rescheduleDate && selectedAppointment?.appointmentTypeId && isRescheduling) {
+        setFetchingTimeSlots(true);
+        setActionStatus(null);
+        
+        try {
+          const slots = await getAvailableTimeSlots(rescheduleDate, selectedAppointment.appointmentTypeId);
+          setAvailableTimes(slots);
+          
+          if (slots.length === 0) {
+            setActionStatus({
+              success: false,
+              message: 'No available time slots for the selected date. Please try another date.'
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching available time slots:', error);
+          setActionStatus({
+            success: false,
+            message: 'Failed to fetch available time slots. Please try again.'
+          });
+        } finally {
+          setFetchingTimeSlots(false);
+        }
+      }
+    };
+    
+    fetchAvailableTimeSlots();
+  }, [rescheduleDate, selectedAppointment, isRescheduling]);
+  
   // Handle reschedule appointment button click
   const handleRescheduleClick = (appointment: Appointment) => {
     // If the appointment doesn't have appointmentTypeId, try to extract it from the appointmentType
@@ -289,9 +323,10 @@ const ProfilePage: React.FC = () => {
       // Here we're making a simplified assumption based on appointment type naming
       const defaultAppointmentTypes: Record<string, string> = {
         'Hearing Test': 'hearing-test',
-        'Hearing Aid Fitting': 'hearing-aid-fitting',
-        'Follow-up Appointment': 'follow-up',
-        'Consultation': 'consultation'
+        'Hearing Aid Fitting': 'fitting',
+        'Follow-up Appointment': 'aftercare',
+        'Consultation': 'consultation',
+        'Microsuction (Wax Removal)': 'microsuction'
       };
       
       // Set a default appointmentTypeId based on the appointment type or use a fallback
@@ -302,15 +337,56 @@ const ProfilePage: React.FC = () => {
     }
 
     setSelectedAppointment(appointment);
+    // Set current appointment date as default
     setRescheduleDate(appointment.date);
     setRescheduleTime('');
+    setAvailableTimes([]);
     setIsRescheduling(true);
     setActionStatus(null);
+  };
+
+  // Refresh available time slots manually
+  const refreshAvailableTimeSlots = async () => {
+    if (!rescheduleDate || !selectedAppointment?.appointmentTypeId) {
+      setActionStatus({
+        success: false,
+        message: 'Please select a date first'
+      });
+      return;
+    }
     
-    // In a real implementation, fetch available times for the selected date here
-    // For now, we'll use some placeholder times
-    const fakeTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30"];
-    setAvailableTimes(fakeTimes);
+    setFetchingTimeSlots(true);
+    setActionStatus(null);
+    
+    try {
+      const slots = await getAvailableTimeSlots(rescheduleDate, selectedAppointment.appointmentTypeId);
+      setAvailableTimes(slots);
+      
+      if (slots.length === 0) {
+        setActionStatus({
+          success: false,
+          message: 'No available time slots for the selected date. Please try another date.'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching available time slots:', error);
+      setActionStatus({
+        success: false,
+        message: 'Failed to fetch available time slots. Please try again.'
+      });
+    } finally {
+      setFetchingTimeSlots(false);
+    }
+  };
+
+  // Handle reschedule date change
+  const handleRescheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = new Date(e.target.value);
+    const day = date.getDay();
+    
+    // Reset selected time when date changes
+    setRescheduleTime('');
+    setRescheduleDate(e.target.value);
   };
 
   // Handle cancel appointment button click
@@ -832,18 +908,30 @@ const ProfilePage: React.FC = () => {
                             type="date"
                             id="reschedule-date"
                             value={rescheduleDate}
-                            onChange={(e) => setRescheduleDate(e.target.value)}
+                            onChange={handleRescheduleDateChange}
                             min={new Date().toISOString().split('T')[0]}
                             required
                           />
                         </div>
                         
                         <div className="form-group">
-                          <label htmlFor="reschedule-time">Time</label>
+                          <div className="time-slot-header">
+                            <label htmlFor="reschedule-time">Time</label>
+                            <button 
+                              type="button"
+                              className="refresh-slots-button"
+                              onClick={refreshAvailableTimeSlots}
+                              disabled={fetchingTimeSlots || !rescheduleDate}
+                            >
+                              {fetchingTimeSlots ? 'Loading...' : 'Refresh Slots'}
+                            </button>
+                          </div>
+                          
                           <select
                             id="reschedule-time"
                             value={rescheduleTime}
                             onChange={(e) => setRescheduleTime(e.target.value)}
+                            disabled={availableTimes.length === 0 || fetchingTimeSlots}
                             required
                           >
                             <option value="">Select a time</option>
@@ -851,6 +939,18 @@ const ProfilePage: React.FC = () => {
                               <option key={time} value={time}>{time}</option>
                             ))}
                           </select>
+                          
+                          {availableTimes.length === 0 && rescheduleDate && !fetchingTimeSlots && (
+                            <div className="no-slots-message">
+                              No available time slots for this date. Please try another date.
+                            </div>
+                          )}
+                          
+                          {fetchingTimeSlots && (
+                            <div className="loading-message">
+                              Loading available time slots...
+                            </div>
+                          )}
                         </div>
                         
                         {actionStatus && (
@@ -863,7 +963,7 @@ const ProfilePage: React.FC = () => {
                           <button 
                             type="submit" 
                             className="primary-button"
-                            disabled={actionInProgress}
+                            disabled={actionInProgress || !rescheduleTime}
                           >
                             {actionInProgress ? 'Processing...' : 'Confirm Reschedule'}
                           </button>
