@@ -11,7 +11,10 @@ import {
 import { 
   getUserAppointments, 
   getAudiologistAppointments, 
-  Appointment 
+  Appointment,
+  cancelAppointment,
+  rescheduleAppointment,
+  RescheduleRequest
 } from '../services/appointmentService';
 import '../styles/ProfilePage.css';
 
@@ -49,6 +52,15 @@ const ProfilePage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
   const [fetchedAppointments, setFetchedAppointments] = useState(false);
+  
+  // State for appointment actions
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [actionInProgress, setActionInProgress] = useState(false);
+  const [actionStatus, setActionStatus] = useState<{success: boolean, message: string} | null>(null);
 
   // Determine if the current user is an audiologist
   const isAudiologist = currentUser && 'qualifications' in currentUser;
@@ -267,6 +279,136 @@ const ProfilePage: React.FC = () => {
       default:
         return '';
     }
+  };
+
+  // Handle reschedule appointment button click
+  const handleRescheduleClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setRescheduleDate(appointment.date);
+    setRescheduleTime('');
+    setIsRescheduling(true);
+    setActionStatus(null);
+    
+    // In a real implementation, fetch available times for the selected date here
+    // For now, we'll use some placeholder times
+    const fakeTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30"];
+    setAvailableTimes(fakeTimes);
+  };
+
+  // Handle cancel appointment button click
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (window.confirm('Are you sure you want to cancel this appointment?')) {
+      setActionInProgress(true);
+      try {
+        const response = await cancelAppointment(appointmentId);
+        
+        if (response.success) {
+          // Update the appointments list
+          setAppointments(prev => 
+            prev.map(appt => 
+              appt.id === appointmentId ? { ...appt, status: 'cancelled' } : appt
+            )
+          );
+          
+          setActionStatus({
+            success: true,
+            message: 'Appointment cancelled successfully'
+          });
+        } else {
+          setActionStatus({
+            success: false,
+            message: response.message || 'Failed to cancel appointment'
+          });
+        }
+      } catch (error) {
+        console.error('Error cancelling appointment:', error);
+        setActionStatus({
+          success: false,
+          message: 'An error occurred while cancelling the appointment'
+        });
+      } finally {
+        setActionInProgress(false);
+      }
+    }
+  };
+
+  // Handle reschedule appointment submission
+  const handleRescheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedAppointment || !rescheduleDate || !rescheduleTime) {
+      setActionStatus({
+        success: false,
+        message: 'Please select a date and time for rescheduling'
+      });
+      return;
+    }
+    
+    setActionInProgress(true);
+    
+    try {
+      const rescheduleData: RescheduleRequest = {
+        appointmentId: selectedAppointment.id,
+        newDate: rescheduleDate,
+        newTime: rescheduleTime
+      };
+      
+      const response = await rescheduleAppointment(rescheduleData);
+      
+      if (response.success) {
+        // Update the appointments list
+        setAppointments(prev => 
+          prev.map(appt => 
+            appt.id === selectedAppointment.id 
+              ? { 
+                  ...appt, 
+                  date: rescheduleDate, 
+                  startTime: rescheduleTime,
+                  // Calculate end time based on duration (assuming 30 minutes for this example)
+                  endTime: calculateEndTime(rescheduleTime, 30)
+                } 
+              : appt
+          )
+        );
+        
+        setActionStatus({
+          success: true,
+          message: 'Appointment rescheduled successfully'
+        });
+        
+        // Close the reschedule modal after a short delay
+        setTimeout(() => {
+          setIsRescheduling(false);
+          setSelectedAppointment(null);
+        }, 1500);
+      } else {
+        setActionStatus({
+          success: false,
+          message: response.message || 'Failed to reschedule appointment'
+        });
+      }
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      setActionStatus({
+        success: false,
+        message: 'An error occurred while rescheduling the appointment'
+      });
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  // Helper function to calculate end time based on start time and duration
+  const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+    const endHours = endDate.getHours().toString().padStart(2, '0');
+    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${endHours}:${endMinutes}`;
   };
 
   if (!currentUser) {
@@ -551,6 +693,12 @@ const ProfilePage: React.FC = () => {
                   </button>
                 </div>
                 
+                {actionStatus && (
+                  <div className={`action-status ${actionStatus.success ? 'success' : 'error'}`}>
+                    {actionStatus.message}
+                  </div>
+                )}
+                
                 {isLoadingAppointments ? (
                   <div className="loading-appointments">Loading appointments...</div>
                 ) : !currentUser.id ? (
@@ -595,12 +743,30 @@ const ProfilePage: React.FC = () => {
                         )}
                       </div>
                       <div className="appointment-actions">
-                        <button className="secondary-button">
-                          {isAudiologist ? 'Edit Appointment' : 'Reschedule'}
-                        </button>
-                        <button className="outlined-button">
-                          {isAudiologist ? 'Mark as Complete' : 'Cancel'}
-                        </button>
+                        {appointment.status === 'booked' || appointment.status === 'confirmed' ? (
+                          <>
+                            <button 
+                              className="secondary-button"
+                              onClick={() => handleRescheduleClick(appointment)}
+                              disabled={actionInProgress}
+                            >
+                              {isAudiologist ? 'Edit Appointment' : 'Reschedule'}
+                            </button>
+                            <button 
+                              className="outlined-button"
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                              disabled={actionInProgress}
+                            >
+                              {isAudiologist ? 'Mark as Complete' : 'Cancel'}
+                            </button>
+                          </>
+                        ) : (
+                          <div className="appointment-status-message">
+                            {appointment.status === 'cancelled' ? 'This appointment has been cancelled' : 
+                             appointment.status === 'completed' ? 'This appointment has been completed' :
+                             'No actions available'}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -612,6 +778,69 @@ const ProfilePage: React.FC = () => {
                         Book New Appointment
                       </button>
                     )}
+                  </div>
+                )}
+                
+                {/* Reschedule Appointment Modal */}
+                {isRescheduling && selectedAppointment && (
+                  <div className="modal-overlay">
+                    <div className="modal-content reschedule-modal">
+                      <h2>Reschedule Appointment</h2>
+                      <p>Please select a new date and time for your appointment.</p>
+                      
+                      <form onSubmit={handleRescheduleSubmit}>
+                        <div className="form-group">
+                          <label htmlFor="reschedule-date">Date</label>
+                          <input
+                            type="date"
+                            id="reschedule-date"
+                            value={rescheduleDate}
+                            onChange={(e) => setRescheduleDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="form-group">
+                          <label htmlFor="reschedule-time">Time</label>
+                          <select
+                            id="reschedule-time"
+                            value={rescheduleTime}
+                            onChange={(e) => setRescheduleTime(e.target.value)}
+                            required
+                          >
+                            <option value="">Select a time</option>
+                            {availableTimes.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {actionStatus && (
+                          <div className={`modal-status ${actionStatus.success ? 'success' : 'error'}`}>
+                            {actionStatus.message}
+                          </div>
+                        )}
+                        
+                        <div className="modal-actions">
+                          <button 
+                            type="submit" 
+                            className="primary-button"
+                            disabled={actionInProgress}
+                          >
+                            {actionInProgress ? 'Processing...' : 'Confirm Reschedule'}
+                          </button>
+                          <button 
+                            type="button" 
+                            className="outlined-button"
+                            onClick={() => setIsRescheduling(false)}
+                            disabled={actionInProgress}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>
