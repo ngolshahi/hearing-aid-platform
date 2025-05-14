@@ -17,6 +17,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import repository.AudiologistRepository
+import model.RescheduleRequest
 
 class AppointmentRepository {
     private val appointmentsContainer: CosmosContainer = DatabaseConfig.getAppointmentsContainer()
@@ -293,6 +294,93 @@ class AppointmentRepository {
             println("Error fetching appointments for audiologist $audiologistId: ${e.message}")
             e.printStackTrace()
             return emptyList()
+        }
+    }
+    
+    /**
+     * Cancel an appointment
+     */
+    fun cancelAppointment(appointmentId: String): AppointmentResponse {
+        try {
+            println("Attempting to cancel appointment $appointmentId")
+            
+            // Retrieve the appointment
+            val response = appointmentsContainer.readItem(
+                appointmentId, PartitionKey(appointmentId), Appointment::class.java
+            )
+            
+            val appointment = response.item
+            
+            // Update the status to 'cancelled'
+            val updatedAppointment = appointment.copy(
+                status = "cancelled"
+            )
+            
+            // Save back to Cosmos DB
+            appointmentsContainer.replaceItem(updatedAppointment, appointmentId, PartitionKey(appointmentId), null)
+            
+            println("Appointment $appointmentId cancelled successfully")
+            
+            return AppointmentResponse(
+                success = true,
+                appointmentId = appointmentId,
+                message = "Appointment cancelled successfully"
+            )
+        } catch (e: Exception) {
+            println("Error cancelling appointment $appointmentId: ${e.message}")
+            e.printStackTrace()
+            return AppointmentResponse(
+                success = false,
+                message = "Failed to cancel appointment: ${e.message}"
+            )
+        }
+    }
+    
+    /**
+     * Reschedule an appointment
+     */
+    fun rescheduleAppointment(appointmentId: String, rescheduleRequest: RescheduleRequest): AppointmentResponse {
+        try {
+            println("Attempting to reschedule appointment $appointmentId to ${rescheduleRequest.newDate} at ${rescheduleRequest.newTime}")
+            
+            // Retrieve the appointment
+            val response = appointmentsContainer.readItem(
+                appointmentId, PartitionKey(appointmentId), Appointment::class.java
+            )
+            
+            val appointment = response.item
+            
+            // Get appointment type to determine duration
+            val appointmentType = getAppointmentTypeById(appointment.appointmentType)
+            
+            // Calculate new end time
+            val startTime = LocalTime.parse(rescheduleRequest.newTime)
+            val endTime = startTime.plusMinutes(appointmentType.duration.toLong())
+            
+            // Update the appointment with new date and time
+            val updatedAppointment = appointment.copy(
+                date = rescheduleRequest.newDate,
+                startTime = rescheduleRequest.newTime,
+                endTime = endTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+            )
+            
+            // Save back to Cosmos DB
+            appointmentsContainer.replaceItem(updatedAppointment, appointmentId, PartitionKey(appointmentId), null)
+            
+            println("Appointment $appointmentId rescheduled successfully")
+            
+            return AppointmentResponse(
+                success = true,
+                appointmentId = appointmentId,
+                message = "Appointment rescheduled successfully"
+            )
+        } catch (e: Exception) {
+            println("Error rescheduling appointment $appointmentId: ${e.message}")
+            e.printStackTrace()
+            return AppointmentResponse(
+                success = false,
+                message = "Failed to reschedule appointment: ${e.message}"
+            )
         }
     }
 }
