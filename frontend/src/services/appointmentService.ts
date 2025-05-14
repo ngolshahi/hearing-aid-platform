@@ -230,3 +230,49 @@ export const getAudiologistAppointments = async (audiologistId: string): Promise
     return [];
   }
 };
+
+// Cancel an appointment
+export const cancelAppointment = async (appointmentId: string): Promise<AppointmentResponse> => {
+  try {
+    const response = await axios.put<AppointmentResponse>(
+      `${API_URL}/appointments/${appointmentId}/cancel`
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data as AppointmentResponse;
+    }
+    return {
+      success: false,
+      message: 'Network error occurred while cancelling appointment'
+    };
+  }
+};
+
+// Reschedule an appointment
+export interface RescheduleRequest {
+  appointmentId: string;
+  newDate: string;
+  newTime: string;
+}
+
+export const rescheduleAppointment = async (data: RescheduleRequest): Promise<AppointmentResponse> => {
+  try {
+    const response = await axios.put<AppointmentResponse>(
+      `${API_URL}/appointments/${data.appointmentId}/reschedule`,
+      {
+        newDate: data.newDate,
+        newTime: data.newTime
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data as AppointmentResponse;
+    }
+    return {
+      success: false,
+      message: 'Network error occurred while rescheduling appointment'
+    };
+  }
+};
