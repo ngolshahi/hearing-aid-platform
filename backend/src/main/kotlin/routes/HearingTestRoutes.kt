@@ -83,7 +83,7 @@ private val speechInNoiseSentences = listOf(
 fun Route.hearingTestRoutes() {
 
     // Endpoint to save hearing test results
-    post("/hearing-test") {
+    post("/api/hearing-test") {
         try {
             val request = call.receive<HearingTestRequest>()
             
@@ -129,7 +129,7 @@ fun Route.hearingTestRoutes() {
     }
     
     // Get available contextual tests
-    get("/hearing-test/contextual") {
+    get("/api/hearing-test/contextual") {
         try {
             // In a real implementation, fetch from database
             // For now, return the sample tests
@@ -143,7 +143,7 @@ fun Route.hearingTestRoutes() {
     }
     
     // Get a specific contextual test by ID
-    get("/hearing-test/contextual/{id}") {
+    get("/api/hearing-test/contextual/{id}") {
         try {
             val id = call.parameters["id"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest, 
@@ -169,7 +169,7 @@ fun Route.hearingTestRoutes() {
     }
     
     // Submit contextual test results
-    post("/hearing-test/contextual") {
+    post("/api/hearing-test/contextual") {
         try {
             val result = call.receive<ContextualTestResult>()
             
@@ -189,7 +189,7 @@ fun Route.hearingTestRoutes() {
     }
     
     // Submit complete hearing test results (tone + contextual)
-    post("/hearing-test/complete") {
+    post("/api/hearing-test/complete") {
         try {
             val request = call.receive<CompleteHearingTestResult>()
             
@@ -209,7 +209,7 @@ fun Route.hearingTestRoutes() {
     }
     
     // Get test results for a user (placeholder for future implementation)
-    get("/hearing-test/{userId}") {
+    get("/api/hearing-test/{userId}") {
         try {
             val userId = call.parameters["userId"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest, 
@@ -232,7 +232,7 @@ fun Route.hearingTestRoutes() {
     }
 
     // Endpoint for speech-in-noise test
-    post("/hearing-test/speech-in-noise") {
+    post("/api/hearing-test/speech-in-noise") {
         try {
             val request = call.receive<SpeechInNoiseTestRequest>()
             
