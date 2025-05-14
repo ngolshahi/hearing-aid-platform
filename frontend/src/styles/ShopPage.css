@@ -188,6 +188,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  position: relative;
 }
 
 .product-image img {
@@ -257,14 +258,14 @@
 /* Product Actions */
 .product-actions {
   display: flex;
-  flex-direction: column;
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1rem;
 }
 
 .product-actions button {
-  width: 100%;
+  flex: 1;
+  min-width: 100px;
 }
 
 .primary-button {
@@ -287,6 +288,11 @@
 .secondary-button:hover {
   background: rgba(44, 82, 130, 0.08);
   transform: translateY(-2px);
+}
+
+.secondary-button.active {
+  background: #2c5282;
+  color: white;
 }
 
 .reset-filters {
@@ -647,4 +653,95 @@
 .clear-filter:hover {
   color: #1a202c;
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Comparison Badge */
+.comparison-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #2c5282;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  z-index: 5;
+}
+
+/* Comparison Bar */
+.comparison-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a202c;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 50;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.comparison-info {
+  font-weight: 600;
+}
+
+.comparison-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.clear-selection {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-selection:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.compare-products-btn {
+  background: #4299e1;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.compare-products-btn:hover {
+  background: #3182ce;
+}
+
+/* Mobile Styles for Comparison Bar */
+@media (max-width: 768px) {
+  .comparison-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .comparison-actions {
+    width: 100%;
+  }
+  
+  .clear-selection,
+  .compare-products-btn {
+    flex: 1;
+    text-align: center;
+  }
+  
+  /* Add padding to bottom of page to account for fixed bar */
+  .shop-page {
+    padding-bottom: 80px;
+  }
 }
