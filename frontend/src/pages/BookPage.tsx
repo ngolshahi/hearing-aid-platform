@@ -54,7 +54,7 @@ const BookPage: React.FC = () => {
       type: 'Microsuction (Wax Removal)',
       duration: '30 minutes',
       icon: '🔍',
-      id: 'wax-removal'
+      id: 'microsuction'
     },
     {
       type: 'Aftercare/Repair',
