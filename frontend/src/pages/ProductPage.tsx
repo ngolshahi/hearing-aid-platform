@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { getHearingAidById, getHearingAids, HearingAid as BasicHearingAid } from '../services/hearingAidService';
 import HearingAidVisualiser from '../components/HearingAidVisualiser';
 import '../styles/ProductPage.css';
+import { getColorName } from '../utils/colorUtils';
 
 interface Feature {
   icon: string;
@@ -31,20 +32,6 @@ interface Review {
   comment: string;
   verified: boolean;
 }
-
-const getColorName = (hexColor: string): string => {
-  const colorMap: Record<string, string> = {
-    '#4e312d': 'chestnut-standard', // Chestnut
-    '#bec2cb': 'silver', // Silver
-    '#708090': 'graphite-gray', // Slate Gray
-    '#CD7F32': 'caramel', // Bronze
-    '#F7E7CE': 'beige', // Cream
-    '#FFFFFF': 'white', // White (if needed)
-    '#000000': 'tech-black' // Black (if needed)
-  };
-  
-  return colorMap[hexColor] || 'silver'; // Default to silver if color not found
-};
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -429,7 +416,7 @@ const ProductPage: React.FC = () => {
                   style={{ backgroundColor: color.toLowerCase() }}
                   onClick={() => setSelectedColor(color)}
                 >
-                  <span className="color-name">{getColorName(color).replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())}</span>
+                  <span className="color-name">{getColorName(color)}</span>
                 </button>
               ))}
             </div>
