@@ -34,6 +34,7 @@ export interface Appointment {
   id: string;
   audiologistId: string;
   appointmentType: string;
+  appointmentTypeId?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -254,18 +255,52 @@ export interface RescheduleRequest {
   appointmentId: string;
   newDate: string;
   newTime: string;
+  appointmentType?: string;
+  appointmentTypeId?: string;
+  userId?: string;
+  notes?: string;
+  userDetails?: UserDetails;
 }
 
 export const rescheduleAppointment = async (data: RescheduleRequest): Promise<AppointmentResponse> => {
   try {
-    const response = await axios.put<AppointmentResponse>(
-      `${API_URL}/appointments/${data.appointmentId}/reschedule`,
-      {
-        newDate: data.newDate,
-        newTime: data.newTime
-      }
-    );
-    return response.data;
+    // Step 1: Cancel the existing appointment
+    const cancelResponse = await cancelAppointment(data.appointmentId);
+    
+    if (!cancelResponse.success) {
+      return {
+        success: false,
+        message: `Failed to cancel the original appointment: ${cancelResponse.message}`
+      };
+    }
+    
+    // Step 2: Create a new appointment request
+    if (!data.appointmentTypeId || !data.userDetails) {
+      return {
+        success: false,
+        message: 'Missing required appointment information for rebooking'
+      };
+    }
+    
+    const newAppointmentRequest: AppointmentRequest = {
+      appointmentTypeId: data.appointmentTypeId,
+      date: data.newDate,
+      time: data.newTime,
+      userId: data.userId,
+      notes: data.notes,
+      userDetails: data.userDetails
+    };
+    
+    // Step 3: Book the new appointment
+    const bookResponse = await bookAppointment(newAppointmentRequest);
+    
+    return {
+      success: bookResponse.success,
+      appointmentId: bookResponse.appointmentId,
+      message: bookResponse.success 
+        ? 'Appointment successfully rescheduled' 
+        : `Cancelled original appointment but failed to create new one: ${bookResponse.message}`
+    };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       return error.response.data as AppointmentResponse;
