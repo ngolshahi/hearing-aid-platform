@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
       description: 'Safe and comfortable ear wax removal',
       duration: '30 minutes',
       icon: '🔍',
-      id: 'wax-removal'
+      id: 'microsuction'
     },
     {
       type: 'Aftercare/Repair',
