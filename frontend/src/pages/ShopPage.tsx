@@ -353,7 +353,12 @@ const ShopPage: React.FC = () => {
     if (newShowAllColors) {
       // When switching to "No Preference", clear any selected colors
       setSelectedColors([]);
+    } else if (selectedColors.length === 0) {
+      // When disabling "No Preference" without any colors selected, 
+      // show a warning to the user that no products will be displayed
+      console.log('Warning: No colors selected with No Preference turned off');
     }
+    
     // Mark that we've manually set filters
     filtersSetFromNavigation.current = true;
   };
@@ -369,6 +374,9 @@ const ShopPage: React.FC = () => {
     
     if (selectedColors.length > 0) {
       console.log('Filtering by color groups:', selectedColors);
+    } else if (!showAllColors) {
+      // If No Preference is not checked AND no colors are selected, return no products
+      console.log('No color preference disabled but no colors selected - showing no products');
     }
     
     return hearingAids.filter(aid => {
@@ -394,10 +402,13 @@ const ShopPage: React.FC = () => {
         return false;
       }
 
-      // Filter by color (if showAllColors is true, show all)
-      if (selectedColors.length > 0 && !showAllColors) {
-        // Use our utility function to check if the hearing aid has ANY of the selected color groups (OR logic)
-        if (!hearingAidHasSelectedColor(aid.colors, selectedColors)) {
+      // Filter by color
+      if (!showAllColors) {
+        if (selectedColors.length === 0) {
+          // If "No Preference" is unchecked but no colors are selected, show no products
+          return false;
+        } else if (!hearingAidHasSelectedColor(aid.colors, selectedColors)) {
+          // Check if the hearing aid has ANY of the selected colors
           return false;
         }
       }
@@ -549,6 +560,9 @@ const ShopPage: React.FC = () => {
                 />
                 No Preference
               </label>
+              {!showAllColors && selectedColors.length === 0 && (
+                <p className="filter-hint">Please select at least one color</p>
+              )}
               {availableColorGroups.map(colorGroup => (
                 <label 
                   key={colorGroup.name} 

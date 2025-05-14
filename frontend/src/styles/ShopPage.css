@@ -119,6 +119,14 @@
   cursor: not-allowed;
 }
 
+.filter-hint {
+  font-size: 0.8rem;
+  color: #e53e3e;
+  margin: 5px 0 10px;
+  padding-left: 5px;
+  font-style: italic;
+}
+
 /* Price Range */
 .price-range {
   display: flex;
