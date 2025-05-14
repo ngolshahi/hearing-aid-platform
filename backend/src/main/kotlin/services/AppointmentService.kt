@@ -17,7 +17,6 @@ import model.AppointmentResponse
 import model.Appointment
 import model.Audiologist
 import model.AppointmentType
-import model.RescheduleRequest
 
 class AppointmentService(private val appointmentRepository: AppointmentRepository = AppointmentRepository()) {
     
@@ -43,9 +42,5 @@ class AppointmentService(private val appointmentRepository: AppointmentRepositor
     
     fun cancelAppointment(appointmentId: String): AppointmentResponse {
         return appointmentRepository.cancelAppointment(appointmentId)
-    }
-    
-    fun rescheduleAppointment(appointmentId: String, rescheduleRequest: RescheduleRequest): AppointmentResponse {
-        return appointmentRepository.rescheduleAppointment(appointmentId, rescheduleRequest)
     }
 }
