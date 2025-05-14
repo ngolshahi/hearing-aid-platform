@@ -25,7 +25,6 @@ const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 's
 // Add a mapping for appointment types to their durations (in minutes)
 const APPOINTMENT_DURATIONS: Record<string, number> = {
   'consultation': 60,
-  'hearing-test': 60,
   'microsuction': 30,
   'aftercare': 45,
   'fitting': 60
@@ -33,10 +32,9 @@ const APPOINTMENT_DURATIONS: Record<string, number> = {
 
 // Add a mapping for appointment type names to their ids
 const APPOINTMENT_TYPE_IDS: Record<string, string> = {
-  'Hearing Test': 'hearing-test',
-  'Hearing Aid Fitting': 'fitting',
-  'Follow-up Appointment': 'aftercare',
-  'Consultation': 'consultation',
+  'Hearing Aid Consultation': 'consultation',
+  'Fitting': 'fitting',
+  'Aftercare/Repair': 'aftercare',
   'Microsuction (Wax Removal)': 'microsuction'
 };
 
