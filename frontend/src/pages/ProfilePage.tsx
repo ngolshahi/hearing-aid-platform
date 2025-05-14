@@ -22,6 +22,24 @@ import '../styles/ProfilePage.css';
 // Days of the week for work schedule
 const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
+// Add a mapping for appointment types to their durations (in minutes)
+const APPOINTMENT_DURATIONS: Record<string, number> = {
+  'consultation': 60,
+  'hearing-test': 60,
+  'microsuction': 30,
+  'aftercare': 45,
+  'fitting': 60
+};
+
+// Add a mapping for appointment type names to their ids
+const APPOINTMENT_TYPE_IDS: Record<string, string> = {
+  'Hearing Test': 'hearing-test',
+  'Hearing Aid Fitting': 'fitting',
+  'Follow-up Appointment': 'aftercare',
+  'Consultation': 'consultation',
+  'Microsuction (Wax Removal)': 'microsuction'
+};
+
 const ProfilePage: React.FC = () => {
   const currentUser = getCurrentUser();
   const [activeTab, setActiveTab] = useState('personal');
@@ -319,20 +337,10 @@ const ProfilePage: React.FC = () => {
   const handleRescheduleClick = (appointment: Appointment) => {
     // If the appointment doesn't have appointmentTypeId, try to extract it from the appointmentType
     if (!appointment.appointmentTypeId) {
-      // This is a fallback approach - in a real implementation, the backend should provide the appointmentTypeId
-      // Here we're making a simplified assumption based on appointment type naming
-      const defaultAppointmentTypes: Record<string, string> = {
-        'Hearing Test': 'hearing-test',
-        'Hearing Aid Fitting': 'fitting',
-        'Follow-up Appointment': 'aftercare',
-        'Consultation': 'consultation',
-        'Microsuction (Wax Removal)': 'microsuction'
-      };
-      
       // Set a default appointmentTypeId based on the appointment type or use a fallback
       appointment = {
         ...appointment,
-        appointmentTypeId: defaultAppointmentTypes[appointment.appointmentType] || 'consultation'
+        appointmentTypeId: APPOINTMENT_TYPE_IDS[appointment.appointmentType] || 'consultation'
       };
     }
 
@@ -426,6 +434,24 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Helper function to calculate end time based on start time and duration
+  const calculateEndTime = (startTime: string, appointmentTypeId: string): string => {
+    // Get the appointment duration in minutes based on type, default to 60 if not found
+    const durationMinutes = APPOINTMENT_DURATIONS[appointmentTypeId] || 60;
+    
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+    const endHours = endDate.getHours().toString().padStart(2, '0');
+    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    
+    console.log(`Calculated end time for ${appointmentTypeId} (${durationMinutes} min): ${startTime} -> ${endHours}:${endMinutes}`);
+    
+    return `${endHours}:${endMinutes}`;
+  };
+
   // Handle reschedule appointment submission
   const handleRescheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,7 +472,7 @@ const ProfilePage: React.FC = () => {
         newDate: rescheduleDate,
         newTime: rescheduleTime,
         // Add the required fields for the new booking approach
-        appointmentTypeId: selectedAppointment.appointmentTypeId || '', // This field might need to be added to the Appointment interface
+        appointmentTypeId: selectedAppointment.appointmentTypeId || '',
         userId: selectedAppointment.userId,
         notes: selectedAppointment.notes,
         userDetails: selectedAppointment.userDetails
@@ -471,7 +497,7 @@ const ProfilePage: React.FC = () => {
               appointmentTypeId: selectedAppointment.appointmentTypeId || '',
               date: rescheduleDate,
               startTime: rescheduleTime,
-              endTime: calculateEndTime(rescheduleTime, 30),
+              endTime: calculateEndTime(rescheduleTime, selectedAppointment.appointmentTypeId || ''),
               status: 'booked',
               userId: selectedAppointment.userId,
               notes: selectedAppointment.notes,
@@ -509,19 +535,6 @@ const ProfilePage: React.FC = () => {
     } finally {
       setActionInProgress(false);
     }
-  };
-
-  // Helper function to calculate end time based on start time and duration
-  const calculateEndTime = (startTime: string, durationMinutes: number): string => {
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes, 0, 0);
-    
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    const endHours = endDate.getHours().toString().padStart(2, '0');
-    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
-    
-    return `${endHours}:${endMinutes}`;
   };
 
   if (!currentUser) {
