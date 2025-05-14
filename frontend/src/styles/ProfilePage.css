@@ -1279,3 +1279,75 @@
       padding: 1.5rem;
     }
   }
+
+  /* Time slot selection in reschedule modal */
+  .time-slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .refresh-slots-button {
+    background-color: transparent;
+    color: #2c5282;
+    border: 1px solid #2c5282;
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .refresh-slots-button:hover:not(:disabled) {
+    background-color: rgba(44, 82, 130, 0.1);
+  }
+
+  .refresh-slots-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #a0aec0;
+    color: #a0aec0;
+  }
+
+  .no-slots-message, .loading-message {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .no-slots-message {
+    background-color: rgba(237, 137, 54, 0.1);
+    color: #c05621;
+    border: 1px solid rgba(237, 137, 54, 0.2);
+  }
+
+  .loading-message {
+    background-color: rgba(49, 130, 206, 0.1);
+    color: #2b6cb0;
+    border: 1px solid rgba(49, 130, 206, 0.2);
+    text-align: center;
+  }
+
+  /* Make the select element more visually appealing */
+  .reschedule-modal select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    background-color: #f8fafc;
+    color: #1a202c;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+  }
+
+  .reschedule-modal select:disabled {
+    background-color: #edf2f7;
+    color: #a0aec0;
+    cursor: not-allowed;
+  }
