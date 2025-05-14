@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/ShopPage.css';
 import Quiz from './Quiz';
 import { getHearingAids, HearingAid } from '../services/hearingAidService';
+import { colorGroups, getColorName, getDisplayColorByName, hearingAidHasSelectedColor, getUniqueColorGroups } from '../utils/colorUtils';
 
 // Define a mapping for our category slugs to hearing aid types displayed in UI
 const categoryToTypeMap: Record<string, string> = {
@@ -71,7 +72,7 @@ const ShopPage: React.FC = () => {
   // Arrays for filter options that will be populated from the fetched data
   const [hearingAidTypes, setHearingAidTypes] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
-  const [colors, setColors] = useState<string[]>([]);
+  const [availableColorGroups, setAvailableColorGroups] = useState<typeof colorGroups>([]);
   
   // Use a ref to track if we've already processed a selected type
   const processedSelectedType = React.useRef<string | null>(null);
@@ -141,19 +142,27 @@ const ShopPage: React.FC = () => {
         // Extract unique types, brands, and colors from the fetched data
         const types = [...new Set(data.map(aid => aid.type))];
         const brandsList = [...new Set(data.map(aid => aid.brand))];
-        const colorsList = [...new Set(data.flatMap(aid => aid.colors))];
+        // Extract all color hex codes
+        const colorHexCodes = [...new Set(data.flatMap(aid => aid.colors))];
+        
+        // Get unique color groups from all hex codes
+        const uniqueColorGroups = getUniqueColorGroups(colorHexCodes);
         
         console.log('Available hearing aid types:', types);
+        console.log('Available color groups:', uniqueColorGroups.map(g => g.name));
         
-        // Debug: Log each aid with its type
-        console.log('All hearing aids with types:');
+        // Debug: Log each aid with its type and colors
+        console.log('All hearing aids with types and colors:');
         data.forEach(aid => {
-          console.log(`${aid.name}: "${aid.type}"`);
+          console.log(`${aid.name}: "${aid.type}", Colors: ${aid.colors.map(c => getColorName(c)).join(', ')}`);
         });
         
         setHearingAidTypes(types);
         setBrands(brandsList);
-        setColors(colorsList);
+        // Store the unique color groups for display in the filter
+        setAvailableColorGroups(uniqueColorGroups);
+        // We no longer need to store raw hex codes
+        // setColors(colorsList);
         
         // ONLY set all filters on first load AND if we haven't set filters from navigation
         if (!initialDataLoaded.current && !filtersSetFromNavigation.current) {
@@ -218,17 +227,17 @@ const ShopPage: React.FC = () => {
     );
   };
 
-  const handleColorChange = (color: string) => {
+  const handleColorChange = (colorGroupName: string) => {
     if (showAllColors) return; // Don't change colors if "No Preference" is selected
     
     // Mark that we've manually set filters
     filtersSetFromNavigation.current = true;
     
     setSelectedColors(prev => {
-      if (prev.includes(color)) {
-        return prev.filter(c => c !== color);
+      if (prev.includes(colorGroupName)) {
+        return prev.filter(c => c !== colorGroupName);
       } else {
-        return [...prev, color];
+        return [...prev, colorGroupName];
       }
     });
   };
@@ -298,9 +307,19 @@ const ShopPage: React.FC = () => {
       setSelectedBrands(results.brands);
     }
     
-    // Update colors
+    // Update colors - handle both hex codes and color names from quiz results
     if (results.colors && results.colors.length > 0) {
-      setSelectedColors(results.colors);
+      // Convert any hex codes to color names if needed
+      const colorNames = results.colors.map((color: string) => {
+        // If it starts with #, it's a hex code, so convert it
+        if (color.startsWith('#')) {
+          return getColorName(color);
+        }
+        // Otherwise, assume it's already a color name
+        return color;
+      });
+      
+      setSelectedColors(colorNames);
       setShowAllColors(false);
     }
     
@@ -327,6 +346,18 @@ const ShopPage: React.FC = () => {
     setCategoryFilter(null);
   };
 
+  const toggleShowAllColors = () => {
+    const newShowAllColors = !showAllColors;
+    setShowAllColors(newShowAllColors);
+    
+    if (newShowAllColors) {
+      // When switching to "No Preference", clear any selected colors
+      setSelectedColors([]);
+    }
+    // Mark that we've manually set filters
+    filtersSetFromNavigation.current = true;
+  };
+
   const getFilteredHearingAids = () => {
     if (selectedTypes.length > 0) {
       console.log('Filtering by types:', selectedTypes);
@@ -334,6 +365,10 @@ const ShopPage: React.FC = () => {
     
     if (categoryFilter) {
       console.log('Using category filter:', categoryFilter);
+    }
+    
+    if (selectedColors.length > 0) {
+      console.log('Filtering by color groups:', selectedColors);
     }
     
     return hearingAids.filter(aid => {
@@ -361,11 +396,8 @@ const ShopPage: React.FC = () => {
 
       // Filter by color (if showAllColors is true, show all)
       if (selectedColors.length > 0 && !showAllColors) {
-        // Check if the hearing aid has ANY of the selected colors
-        const hasMatchingColor = selectedColors.some(selectedColor => 
-          aid.colors.includes(selectedColor)
-        );
-        if (!hasMatchingColor) {
+        // Use our utility function to check if the hearing aid has ANY of the selected color groups (OR logic)
+        if (!hearingAidHasSelectedColor(aid.colors, selectedColors)) {
           return false;
         }
       }
@@ -513,31 +545,26 @@ const ShopPage: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={showAllColors}
-                  onChange={() => {
-                    setShowAllColors(!showAllColors);
-                    if (!showAllColors) {
-                      setSelectedColors([]); // Clear color selection when enabling "No Preference"
-                    }
-                  }}
+                  onChange={toggleShowAllColors}
                 />
                 No Preference
               </label>
-              {colors.map(color => (
+              {availableColorGroups.map(colorGroup => (
                 <label 
-                  key={color} 
+                  key={colorGroup.name} 
                   className={`filter-option ${showAllColors ? 'disabled' : ''}`}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedColors.includes(color)}
-                    onChange={() => handleColorChange(color)}
+                    checked={selectedColors.includes(colorGroup.name)}
+                    onChange={() => handleColorChange(colorGroup.name)}
                     disabled={showAllColors}
                   />
                   <span 
                     className="color-sample" 
-                    style={{ backgroundColor: color.toLowerCase() }}
+                    style={{ backgroundColor: colorGroup.displayColor.toLowerCase() }}
                   />
-                  {color}
+                  {colorGroup.name}
                 </label>
               ))}
             </div>
@@ -636,7 +663,7 @@ const ShopPage: React.FC = () => {
                             key={color}
                             className="color-dot"
                             style={{ backgroundColor: color.toLowerCase() }}
-                            title={color}
+                            title={getColorName(color)}
                           />
                         ))}
                       </div>
