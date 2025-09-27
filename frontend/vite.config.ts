@@ -14,17 +14,17 @@ export default defineConfig({
       injectRegister: 'auto',  // Automatically inject service worker registration
       manifest: {
         name: 'Hearing Aid Platform',
-        short_name: 'HearingAid',
+        short_name: 'Auralise',
         description: 'Try on hearing aids in AR',
         theme_color: '#ffffff',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'ios/180.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'ios/512.png',
             sizes: '512x512',
             type: 'image/png'
           }
@@ -42,7 +42,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://192.168.0.13:8080',
+        target: 'http://10.14.209.147:8080',
         changeOrigin: true,
         secure: false
       }
