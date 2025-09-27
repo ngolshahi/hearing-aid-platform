@@ -59,7 +59,7 @@ const hearingAidQuestions: QuizQuestion[] = [
       { id: 'ite', text: 'In-the-Ear (ITE) - Fits in the outer ear' },
       { id: 'bte', text: 'Behind-the-Ear (BTE) - Sits behind the ear' },
       { id: 'itc', text: 'In-the-Canal (ITC) - Fits partially in ear canal' },
-      { id: 'cic', text: 'Completely-in-Canal (CIC) - Nearly invisible in ear canal' },
+      { id: 'ric', text: 'Receiver-in-Canal (CIC) - Nearly invisible in ear canal' },
       { id: 'any', text: 'I\'m not sure - Show me all options' },
     ],
   },
@@ -146,7 +146,7 @@ const Quiz: React.FC<QuizProps> = ({ type, onClose, onComplete }) => {
         'ite': 'In-the-Ear (ITE)',
         'bte': 'Behind-the-Ear (BTE)',
         'itc': 'In-the-Canal (ITC)',
-        'cic': 'Completely-in-Canal (CIC)'
+        'ric': 'Receiver-in-Canal (RIC)'
       };
       if (answers['1'] !== 'any' && typeMap[answers['1']]) {
         results.types.push(typeMap[answers['1']]);
