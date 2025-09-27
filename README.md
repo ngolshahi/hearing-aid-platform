@@ -1,125 +1,128 @@
-# Hearing Aid Platform
+# 🦻 Hearing Aid Platform
 
-This project is a **web application** that also functions as a **Progressive Web App (PWA)**, providing an augmented reality experience for visualizing hearing aids. The platform allows users to view hearing aid models in their real environment using AR technology, with support for both iOS Quick Look and WebXR standards. Users can access the platform through any modern web browser, with the option to install it as a PWA for an enhanced mobile experience.
+A comprehensive **Progressive Web Application (PWA)** that provides an augmented reality experience for visualizing hearing aids, complete with hearing tests, appointment booking, and personalized audiologist consultations.
+
+<div align="center">
+
+![Desktop Home](images/desktop_home.png)
+
+*Modern, responsive interface accessible across all devices*
+
+</div>
+
+## ✨ Key Features
+
+### 🌐 Multi-Platform Access
+- **Progressive Web App**: Install on any device for native app experience
+- **Cross-Platform Compatibility**: Works seamlessly on desktop, tablet, and mobile
+- **Offline Support**: Core functionality available without internet connection
+
+### 🥽 Advanced AR Experience
+- **iOS Quick Look AR**: Native AR experience on Apple devices
+- **WebXR Support**: Cutting-edge AR on compatible browsers
+- **Virtual Try-On**: See how hearing aids look on your ears in real-time
+- **3D Model Viewer**: Interactive product exploration
+
+<div align="center">
+
+| Mobile AR Try-On | Desktop AR Experience |
+|:---:|:---:|
+| ![Mobile AR](images/mobile_ar_tryon.png) | ![Desktop AR](images/desktop_ar_tryon.png) |
+
+</div>
+
+### 🩺 Comprehensive Hearing Assessment
+- **Online Hearing Tests**: Professional-grade audiometry testing
+- **Tone Detection Tests**: Frequency-specific hearing evaluation
+- **Speech-in-Noise Testing**: Real-world hearing scenario assessment
+- **Personalized Results**: Detailed hearing profiles and recommendations
+
+<div align="center">
+
+| Tone Test | Speech-in-Noise Test | Test Results |
+|:---:|:---:|:---:|
+| ![Tone Test](images/desktop_tone_test.png) | ![Speech Test](images/desktop_speech_noise.png) | ![Results](images/desktop_test_results.png) |
+
+</div>
+
+### 👩‍⚕️ Professional Services
+- **Audiologist Network**: Connect with certified hearing professionals
+- **Easy Appointment Booking**: Streamlined scheduling system
+- **Appointment Management**: Track and manage your consultations
+
+<div align="center">
+
+| Audiologist Selection | Booking Interface | Appointment History |
+|:---:|:---:|:---:|
+| ![Audiologist Picker](images/audiologist_picker_desktop.png) | ![Booking](images/desktop_booking_selection.png) | ![History](images/desktop_appointment_history.png) |
+
+</div>
 
 ---
 
-## Table of Contents
+## 🚀 Quick Start Guide
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Backend Setup](#backend-setup)
-- [Frontend Setup](#frontend-setup)
-- [Running the Application](#running-the-application)
-- [Troubleshooting](#troubleshooting)
+### Prerequisites
 
----
+Ensure you have the following installed:
 
-## Features
+- **Node.js** (v16 or higher)
+- **JDK 11+** (for Kotlin backend)
+- **Azure Account** (for Cosmos DB)
+- **Firebase Account** (for authentication & services)
 
-### Platform Access
-- **Web Application**: Access through any modern web browser
-- **Progressive Web App**: Installable on mobile devices for a native app-like experience
-- **Offline Support**: Basic functionality available without internet connection (PWA feature)
-- **Cross-Platform Compatibility**: Works on desktop and mobile browsers
+### 📥 Installation
 
-### Augmented Reality Experience
-- **iOS Quick Look**: On iOS devices, users can view hearing aids in their environment using Apple's Quick Look AR
-- **WebXR Support**: On compatible devices, users can experience AR through the WebXR standard
-- **3D Model Viewer**: For devices without AR support, users can interact with detailed 3D models of hearing aids
-- **Multiple Color Options**: Visualization of hearing aids in different available colors
-- **Real-time Environment Integration**: Place and view hearing aids in your actual surroundings
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/ngolshahi/hearing-aid-platform.git
+   cd hearing-aid-platform
+   ```
 
-### Technical Features
-- **Cross-Platform Support**: 
-  - iOS: Native AR experience via Quick Look
-  - Android/Desktop: WebXR implementation
-  - Fallback: Interactive 3D model viewer
-- **Responsive Design**: Adapts to different screen sizes and device capabilities
-- **High-Quality 3D Models**: Detailed hearing aid models with accurate textures and materials
-- **Device Compatibility Detection**: Automatically selects the best viewing experience based on device capabilities
+2. **Backend Setup**
+   ```bash
+   cd backend
+   ./gradlew build
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   ```
 
 ---
 
-## Requirements
+## ⚙️ Configuration
 
-Before setting up the project, ensure that you have the following installed on your local machine:
+### Backend Environment Variables
 
-1. **Node.js** (for frontend)
-2. **Kotlin** (for backend)
-3. **JDK 11 or higher** (for backend)
-4. **Azure account** (for Cosmos DB)
-5. **Firebase account** (for Firebase services)
-
----
-
-## Clone the repository
+Create `.env` in the backend directory:
 
 ```bash
-git clone https://github.com/ngolshahi/hearing-aid-platform.git
-cd hearing-aid-platform/backend
-```
-
-## Backend Setup
-
-### 1. Install dependencies
-
-In the backend directory, you will need to install the necessary dependencies.
-
-Run the following command to install required dependencies and build the project:
-
-```bash
-./gradlew build
-```
-
-### 2. Configure environment variables
-
-Create a .env file in the root directory of your backend project and add your Azure Cosmos DB credentials.
-
-Example .env file for backend:
-
-```bash
+# Azure Cosmos DB Configuration
 AZURE_COSMOS_DB_URI="your_cosmos_db_uri"
 AZURE_COSMOS_DB_KEY="your_cosmos_db_key"
 AZURE_COSMOS_DB_DATABASE="HearingAidDB"
+
+# Container Names
 USERS_CONTAINER="users"
 HEARING_AID_CONTAINER="hearingAids"
 APPOINTMENTS_CONTAINER="appointments"
 AUDIOLOGISTS_CONTAINER="audiologists"
 APPOINTMENT_TYPES_CONTAINER="appointmentTypes"
 
-# Optional: For enhanced ear detection
+# Azure Computer Vision (Optional - for enhanced AR)
 AZURE_VISION_KEY="your_vision_api_key"
 AZURE_VISION_ENDPOINT="your_vision_endpoint"
 ```
 
-### 3. Start the backend
+### Frontend Environment Variables
 
-To run the backend server, execute the following:
-
-```bash
-./gradlew run
-```
-This will start the Ktor backend on ```http://localhost:8080```.
-
-
-## Frontend Setup
-
-### 1. Install dependencies
-
-In the frontend directory, run the following command to install the necessary Node.js dependencies:
+Create `.env` in the frontend directory:
 
 ```bash
-npm install
-```
-
-### 2. Configure environment variables
-
-Create a .env file in the root directory of your frontend project and add your Firebase credentials.
-
-Example .env file for frontend:
-
-```bash
+# Firebase Configuration
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
 VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
@@ -127,139 +130,240 @@ VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
+
+# Azure Speech Services
 VITE_AZURE_SPEECH_KEY=your_azure_speech_key
 VITE_AZURE_SPEECH_REGION=your_azure_speech_region
 ```
 
-### 3. Start the frontend
+---
 
-To start the frontend application in development mode, run the following command:
+## 🏃‍♂️ Running the Application
+
+### Development Mode
+
+1. **Start Backend Server**
+   ```bash
+   cd backend
+   ./gradlew run
+   ```
+   Backend will be available at `http://localhost:8080`
+
+2. **Start Frontend Development Server**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   Frontend will be available at `https://localhost:5173`
+
+### Production Build
 
 ```bash
-npm run dev
+cd frontend
+npm run build
+npm run preview
 ```
 
-This will start the React app on https://localhost:5173.
+---
 
-## Running the Application
+## 📱 User Interface Showcase
 
-Start the backend: Run ```./gradlew run``` in the backend directory to start your Ktor server.
+### Authentication & User Management
 
-Start the frontend: Run ```npm run dev``` in the frontend directory to start the React development server.
+<div align="center">
 
-## Troubleshooting
+| Login (Desktop) | Login (Mobile) | Registration |
+|:---:|:---:|:---:|
+| ![Desktop Login](images/desktop_login.png) | ![Mobile Login](images/mobile_login.png) | ![Registration](images/desktop_register.png) |
 
-- Backend not starting: Make sure all environment variables are set properly in the .env file.
+| OTP Verification | Email OTP | User Profile |
+|:---:|:---:|:---:|
+| ![Desktop OTP](images/desktop_otp.png) | ![Email OTP](images/otp_email.png) | ![User Profile](images/desktop_user_profile.png) |
 
-- Frontend not loading: Check if the React development server is running by visiting ```http://localhost:5173```. Ensure there are no errors in the browser console.
+</div>
 
-- Database connection issues: Verify your Azure Cosmos DB credentials and ensure the database is accessible.
+### Shopping Experience
 
-# Hearing Aid AR Try-On Experience
+<div align="center">
 
-This feature allows users to try on hearing aids virtually, both in real-time using their mobile device camera and by uploading photos on desktop.
+| Shop (Desktop) | Shop (Mobile) | Product Details |
+|:---:|:---:|:---:|
+| ![Desktop Shop](images/desktop_shop.png) | ![Mobile Shop](images/mobile_shop.png) | ![Product Detail](images/desktop_product_detail.png) |
 
-## Features
+</div>
 
-- **Mobile Real-time AR**: On mobile devices, users can use their camera to see in real-time how hearing aids would look on their ear
-- **Desktop Image Upload**: On desktop, users can upload ear photos and see how the hearing aid would look
-- **Multiple Hearing Aid Models**: Compatible with various hearing aid models and styles
-- **Color Visualization**: Shows the hearing aid in different available colors
+### Mobile Experience
 
-## Setup Requirements
+<div align="center">
 
-### Frontend
+| Mobile Navigation | Mobile Home | Mobile Setup |
+|:---:|:---:|:---:|
+| ![Mobile Nav](images/mobile_navigation.png) | ![Mobile Home](images/mobile_home.png) | ![Mobile Setup](images/mobile_setup.png) |
 
-The frontend AR implementation uses the following technologies:
-- Web browser's camera access APIs
-- Canvas-based image manipulation
-- REST API calls to the backend for image processing
+</div>
 
-### Backend
+---
 
-The backend AR processing requires the following setup:
+## 🥽 AR Try-On Technology
 
-1. **Azure Computer Vision API** (Optional but recommended for better ear detection)
-   - Sign up for Azure Computer Vision at https://azure.microsoft.com/en-us/services/cognitive-services/computer-vision/
-   - Create a Computer Vision resource in the Azure portal
-   - Note your API key and endpoint URL
+### How It Works
 
-2. **Environment Variables**
-   - Update the `.env` file in the backend directory with your Azure credentials:
+#### Mobile Real-Time AR
+- **Camera Integration**: Access device camera for live video feed
+- **Real-Time Processing**: Frame-by-frame ear detection and tracking
+- **Overlay Rendering**: Dynamic hearing aid placement and visualization
+- **Multi-Camera Support**: Switch between front and rear cameras
+
+#### Desktop Image Processing
+- **Image Upload**: Support for various image formats
+- **AI-Powered Detection**: Advanced ear recognition algorithms
+- **Precise Placement**: Accurate hearing aid positioning
+- **Color Visualization**: Multiple style and color options
+
+### AR Implementation Details
+
+#### Detection Methods
+1. **Azure Computer Vision API** (Recommended)
+   - Machine learning-based ear detection
+   - High accuracy across diverse conditions
+   - Robust lighting and angle tolerance
+
+2. **Color-Based Detection** (Fallback)
+   - Skin tone analysis for ear identification
+   - Basic geometric shape recognition
+   - Suitable for controlled environments
+
+#### Supported Platforms
+- **iOS**: Native Quick Look AR experience
+- **Android**: WebXR-based AR implementation
+- **Desktop**: 3D model viewer with image processing
+- **Fallback**: Interactive 3D model for all devices
+
+---
+
+## 📊 Hearing Test Features
+
+### Test Types Available
+
+1. **Pure Tone Audiometry**
+   - Frequency-specific hearing assessment
+   - Threshold detection across hearing range
+   - Professional-grade calibration
+
+2. **Speech-in-Noise Testing**
+   - Real-world hearing scenario simulation
+   - Background noise adaptation testing
+   - Comprehension accuracy measurement
+
+3. **Comprehensive Analysis**
+   - Detailed hearing profile generation
+   - Personalized recommendations
+   - Progress tracking over time
+
+---
+
+## 📅 Appointment System
+
+### Features
+- **Smart Scheduling**: AI-powered appointment optimization
+- **Multi-Provider Network**: Extensive audiologist database
+- **Automated Reminders**: Email and push notifications
+- **Telehealth Integration**: Virtual consultation options
+- **History Tracking**: Complete appointment records
+
+<div align="center">
+
+![Booking Confirmation](images/booking_confirmation_desktop.png)
+
+*Streamlined appointment confirmation process*
+
+</div>
+
+---
+
+## 🏗️ Technical Architecture
+
+### Frontend Stack
+- **React 18+**: Modern component-based UI
+- **TypeScript**: Type-safe development
+- **Vite**: Lightning-fast build tool
+- **Tailwind CSS**: Utility-first styling
+- **PWA**: Service workers for offline support
+
+### Backend Stack
+- **Kotlin**: Modern JVM language
+- **Ktor**: Lightweight web framework
+- **Azure Cosmos DB**: NoSQL database
+- **Firebase**: Authentication & real-time features
+
+### Cloud Services
+- **Azure Computer Vision**: AI-powered image analysis
+- **Azure Speech Services**: Audio processing
+- **Firebase Auth**: Secure user management
+- **Azure Cosmos DB**: Scalable data storage
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Backend Won't Start
+- ✅ Verify all environment variables in `.env`
+- ✅ Check Azure Cosmos DB connectivity
+- ✅ Ensure JDK 11+ is installed
+- ✅ Validate database permissions
+
+#### Frontend Loading Problems
+- ✅ Confirm React dev server is running on port 5173
+- ✅ Check browser console for errors
+- ✅ Verify Firebase configuration
+- ✅ Clear browser cache and cookies
+
+#### AR Features Not Working
+- ✅ Grant camera permissions in browser
+- ✅ Use HTTPS for camera access
+- ✅ Test on AR-compatible devices
+- ✅ Check WebXR browser support
+
+#### Database Connection Issues
+- ✅ Validate Azure Cosmos DB credentials
+- ✅ Check network connectivity
+- ✅ Verify container names and database structure
+- ✅ Review Azure portal for service status
+
+---
+
+## 🚀 Deployment
+
+### Production Deployment Steps
+
+1. **Environment Setup**
+   ```bash
+   # Build frontend for production
+   cd frontend
+   npm run build
+   
+   # Build backend
+   cd ../backend
+   ./gradlew build
    ```
-   AZURE_VISION_KEY="your-vision-api-key"
-   AZURE_VISION_ENDPOINT="https://your-vision-service.cognitiveservices.azure.com/"
-   ```
 
-3. **Restart Backend**
-   - After setting the environment variables, restart your backend service to apply the changes
+2. **Cloud Deployment**
+   - Configure Azure App Service for backend
+   - Deploy frontend to CDN (Azure Static Web Apps recommended)
+   - Set up custom domain and SSL certificates
+   - Configure environment variables in production
 
-## Implementation Details
+3. **PWA Configuration**
+   - Ensure service worker is properly configured
+   - Test offline functionality
+   - Validate manifest.json for app installation
 
-### Mobile AR Implementation
+---
 
-The mobile AR implementation uses real-time video processing with ear detection:
+## 📄 License
 
-1. Camera feed is captured using the device camera
-2. Each video frame is processed to detect the user's ear
-3. A hearing aid overlay is positioned and rendered based on the ear position
-4. Users can switch between front and back cameras and capture snapshots
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Desktop Image Processing
-
-The desktop implementation processes uploaded ear images:
-
-1. User uploads an image of their ear
-2. The image is sent to the backend for processing
-3. The backend detects the ear position using either Azure Computer Vision or a color-based algorithm
-4. A hearing aid is overlaid on the ear based on the detected position
-5. The processed image is returned to the frontend for display
-
-### Ear Detection Methods
-
-The AR implementation uses two ear detection approaches:
-
-1. **Azure Computer Vision API** (if credentials are provided)
-   - Uses machine learning to detect ears in the image
-   - More accurate across different lighting conditions and ear types
-
-2. **Color-based Detection** (fallback method)
-   - Uses skin color detection to find ear-like regions
-   - Works for basic scenarios but less accurate than AI-based detection
-
-## Usage
-
-### iOS AR Experience
-1. Navigate to a hearing aid product page
-2. Click the "View in AR" button
-3. The Quick Look AR viewer will open
-4. Point your camera at a flat surface
-5. Tap to place the hearing aid model
-6. Move around to view the hearing aid from different angles
-7. Use gestures to rotate and scale the model
-
-### WebXR Experience (Android/Desktop)
-1. Navigate to a hearing aid product page
-2. Click the "View in AR" button
-3. Grant camera permissions when prompted
-4. Point your camera at a flat surface
-5. Tap to place the hearing aid model
-6. Move around to view the hearing aid from different angles
-7. Use touch/mouse gestures to interact with the model
-
-### 3D Model Viewer (Non-AR Devices)
-1. Navigate to a hearing aid product page
-2. Click the "View 3D Model" button
-3. The 3D model viewer will open
-4. Use mouse/touch controls to:
-   - Rotate the model
-   - Zoom in/out
-   - Pan the view
-5. Select different colors to see various style options
-
-### Tips for Best Results
-- Ensure good lighting for better AR tracking
-- Use a flat, well-textured surface for model placement
-- Keep your device steady while placing the model
-- For the best AR experience, use a modern iOS device or WebXR-compatible browser
-- The 3D model viewer works on all devices and provides a high-quality alternative
+---
