@@ -1,6 +1,6 @@
 {
   "name": "Hearing Aid Platform",
-  "short_name": "HearingAid",
+  "short_name": "Auralise",
   "description": "Virtual try-on platform for hearing aids with AR support",
   "start_url": "/",
   "display": "standalone",
